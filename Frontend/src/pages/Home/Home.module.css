@@ -1,0 +1,359 @@
+.container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  color: var(--text);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.header h1 {
+  margin: 0 0 10px 0;
+  color: var(--neon);
+  font-size: 2rem;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(245, 166, 35, 0.25);
+}
+
+.header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.datetime {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.time {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--neon);
+  font-family: 'Courier New', monospace;
+}
+
+.date {
+  font-size: 0.9rem;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+/* About Section */
+.aboutSection {
+  margin-bottom: 40px;
+}
+
+.aboutCard {
+  background: var(--bg-2);
+  border-radius: 10px;
+  padding: 25px;
+  border: 1px solid var(--stroke);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.aboutCard h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: var(--neon);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.aboutCard p {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text);
+  opacity: 0.9;
+  font-size: 1rem;
+}
+
+/* Quick Access Section */
+.quickAccessSection {
+  margin-bottom: 40px;
+}
+
+.quickAccessSection h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--neon);
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.quickAccessSection h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: var(--neon);
+  border-radius: 2px;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.quickAccessCard {
+  background: var(--bg-2);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  padding: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.quickAccessCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: var(--card-color, var(--neon));
+  transition: all 0.3s ease;
+}
+
+.quickAccessCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  border-color: var(--card-color, var(--neon));
+}
+
+.quickAccessCard:hover::before {
+  height: 6px;
+}
+
+.cardIconContainer {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+  color: var(--card-color, var(--neon));
+  transition: all 0.3s ease;
+}
+
+.quickAccessCard:hover .cardIconContainer {
+  transform: scale(1.1);
+}
+
+.quickAccessCard h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.quickAccessCard p {
+  margin: 0 0 15px 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.cardLink {
+  display: inline-flex;
+  align-items: center;
+  color: var(--card-color, var(--neon));
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  opacity: 0.8;
+}
+
+.quickAccessCard:hover .cardLink {
+  opacity: 1;
+  transform: translateX(5px);
+}
+
+/* Recent Activity Section */
+.recentActivity {
+  margin-bottom: 30px;
+}
+
+.recentActivity h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  color: var(--neon);
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.recentActivity h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: var(--neon);
+  border-radius: 2px;
+}
+
+.activityCard {
+  background: var(--bg-2);
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  padding: 30px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.activityCard p {
+  margin: 0 0 20px 0;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.primaryButton {
+  background: var(--neon);
+  color: #000;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primaryButton:hover {
+  background: #e09517;
+  box-shadow: 0 0 15px rgba(245, 166, 35, 0.35);
+  transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+  }
+  
+  .datetime {
+    align-items: center;
+    width: 100%;
+  }
+  
+  .cardsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .aboutCard,
+  .activityCard {
+    padding: 20px;
+  }
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.quickAccessCard {
+  animation: fadeIn 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+.quickAccessCard:nth-child(1) { animation-delay: 0.1s; }
+.quickAccessCard:nth-child(2) { animation-delay: 0.2s; }
+.quickAccessCard:nth-child(3) { animation-delay: 0.3s; }
+.quickAccessCard:nth-child(4) { animation-delay: 0.4s; }
+.quickAccessCard:nth-child(5) { animation-delay: 0.5s; }
+.quickAccessCard:nth-child(6) { animation-delay: 0.6s; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  border-color: var(--neon);
+  box-shadow: 0 6px 20px rgba(245, 166, 35, 0.18);
+}
+
+.card h2 {
+  margin: 0 0 20px 0;
+  font-size: 18px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 15px;
+}
+
+.quickAction {
+  background: var(--bg-2);
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.quickAction:hover {
+  border-color: var(--neon);
+  background: rgba(245, 166, 35, 0.08);
+  transform: translateY(-2px);
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--muted);
+  font-size: 14px;
+  border: 1px dashed var(--stroke);
+  border-radius: 6px;
+}
