@@ -1,21 +1,14 @@
 import React from 'react';
 import { 
-  Grid3X3, 
-  ChevronDown, 
-  Search, 
-  LayoutDashboard, 
   Plus, 
-  BarChart3, 
-  Database, 
-  Star,
-  ArrowUp,
   X,
   Home,
   TrendingUp,
   MapPin,
   AlertTriangle
 } from 'lucide-react';
-import { useDashboard } from './DashboardContext';
+import { useDashboard } from '../Context/DashboardContext';
+import type { Country } from '../Context/DashboardContext';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -28,25 +21,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     setCurrentView, 
     selectedCountry, 
     setSelectedCountry,
-    currentWorkspace, 
-    setCurrentWorkspace, 
-    searchQuery, 
-    setSearchQuery 
   } = useDashboard();
 
-  const southAmericanCountries = [
-    { id: 'brazil', name: 'Brasil', code: 'BR', coordinates: [-15.7801, -47.9292], riskLevel: 'medium', lastEarthquake: '2024-01-15', magnitude: 4.2 },
-    { id: 'argentina', name: 'Argentina', code: 'AR', coordinates: [-34.6118, -58.3960], riskLevel: 'high', lastEarthquake: '2024-01-20', magnitude: 5.1 },
-    { id: 'chile', name: 'Chile', code: 'CL', coordinates: [-33.4489, -70.6693], riskLevel: 'very-high', lastEarthquake: '2024-01-18', magnitude: 6.3 },
-    { id: 'colombia', name: 'Colombia', code: 'CO', coordinates: [4.7110, -74.0721], riskLevel: 'medium', lastEarthquake: '2024-01-22', magnitude: 4.8 },
-    { id: 'peru', name: 'Perú', code: 'PE', coordinates: [-12.0464, -77.0428], riskLevel: 'high', lastEarthquake: '2024-01-19', magnitude: 5.5 },
-    { id: 'venezuela', name: 'Venezuela', code: 'VE', coordinates: [10.4806, -66.9036], riskLevel: 'low', lastEarthquake: '2024-01-25', magnitude: 3.9 },
-    { id: 'ecuador', name: 'Ecuador', code: 'EC', coordinates: [-0.2299, -78.5249], riskLevel: 'high', lastEarthquake: '2024-01-21', magnitude: 5.2 },
-    { id: 'bolivia', name: 'Bolivia', code: 'BO', coordinates: [-16.4897, -68.1193], riskLevel: 'medium', lastEarthquake: '2024-01-23', magnitude: 4.5 },
-    { id: 'paraguay', name: 'Paraguay', code: 'PY', coordinates: [-25.2637, -57.5759], riskLevel: 'low', lastEarthquake: '2024-01-24', magnitude: 3.2 },
-    { id: 'uruguay', name: 'Uruguay', code: 'UY', coordinates: [-34.9011, -56.1645], riskLevel: 'low', lastEarthquake: '2024-01-26', magnitude: 2.8 },
-    { id: 'guyana', name: 'Guyana', code: 'GY', coordinates: [6.8013, -58.1553], riskLevel: 'low', lastEarthquake: '2024-01-27', magnitude: 3.1 },
-    { id: 'suriname', name: 'Suriname', code: 'SR', coordinates: [5.8520, -55.2038], riskLevel: 'low', lastEarthquake: '2024-01-28', magnitude: 2.9 }
+  const southAmericanCountries: Country[] = [
+    { id: 'brazil', name: 'Brasil', code: 'BR', coordinates: [-15.7801, -47.9292] as [number, number], riskLevel: 'medium', lastEarthquake: '2024-01-15', magnitude: 4.2 },
+    { id: 'argentina', name: 'Argentina', code: 'AR', coordinates: [-34.6118, -58.3960] as [number, number], riskLevel: 'high', lastEarthquake: '2024-01-20', magnitude: 5.1 },
+    { id: 'chile', name: 'Chile', code: 'CL', coordinates: [-33.4489, -70.6693] as [number, number], riskLevel: 'very-high', lastEarthquake: '2024-01-18', magnitude: 6.3 },
+    { id: 'colombia', name: 'Colombia', code: 'CO', coordinates: [4.7110, -74.0721] as [number, number], riskLevel: 'medium', lastEarthquake: '2024-01-22', magnitude: 4.8 },
+    { id: 'peru', name: 'Perú', code: 'PE', coordinates: [-12.0464, -77.0428] as [number, number], riskLevel: 'high', lastEarthquake: '2024-01-19', magnitude: 5.5 },
+    { id: 'venezuela', name: 'Venezuela', code: 'VE', coordinates: [10.4806, -66.9036] as [number, number], riskLevel: 'low', lastEarthquake: '2024-01-25', magnitude: 3.9 },
+    { id: 'ecuador', name: 'Ecuador', code: 'EC', coordinates: [-0.2299, -78.5249] as [number, number], riskLevel: 'high', lastEarthquake: '2024-01-21', magnitude: 5.2 },
+    { id: 'bolivia', name: 'Bolivia', code: 'BO', coordinates: [-16.4897, -68.1193] as [number, number], riskLevel: 'medium', lastEarthquake: '2024-01-23', magnitude: 4.5 },
+    { id: 'paraguay', name: 'Paraguay', code: 'PY', coordinates: [-25.2637, -57.5759] as [number, number], riskLevel: 'low', lastEarthquake: '2024-01-24', magnitude: 3.2 },
+    { id: 'uruguay', name: 'Uruguay', code: 'UY', coordinates: [-34.9011, -56.1645] as [number, number], riskLevel: 'low', lastEarthquake: '2024-01-26', magnitude: 2.8 },
+    { id: 'guyana', name: 'Guyana', code: 'GY', coordinates: [6.8013, -58.1553] as [number, number], riskLevel: 'low', lastEarthquake: '2024-01-27', magnitude: 3.1 },
+    { id: 'suriname', name: 'Suriname', code: 'SR', coordinates: [5.8520, -55.2038] as [number, number], riskLevel: 'low', lastEarthquake: '2024-01-28', magnitude: 2.9 }
   ];
 
   const getRiskLevelColor = (riskLevel: string) => {
@@ -87,7 +76,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
           <div className="flex items-center space-x-2">
             <AlertTriangle className="h-6 w-6 text-red-400" />
-            <span className="text-white font-semibold text-lg">SISMOS SA</span>
+            <span className="text-white font-semibold text-lg">SISMOPREDICT</span>
           </div>
           <button
             onClick={() => setIsOpen(false)}
@@ -98,32 +87,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         </div>
 
         <div className="flex-1 flex flex-col p-4 space-y-4">
-          {/* Workspace Selector */}
-          <div className="relative">
-            <select
-              value={currentWorkspace}
-              onChange={(e) => setCurrentWorkspace(e.target.value)}
-              className="w-full bg-gray-800 text-white border border-gray-700 rounded-md px-3 py-2 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              <option value="My Workspace">My Workspace</option>
-              <option value="Team Workspace">Team Workspace</option>
-              <option value="Shared Workspace">Shared Workspace</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar países o datos..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-800 text-white border border-gray-700 rounded-md pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-
           {/* Main Navigation */}
           <nav className="space-y-2">
             {/* Home View */}
@@ -193,14 +156,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               </div>
             </div>
           </nav>
-
-          {/* Get Data Button */}
-          <div className="mt-auto pt-4">
-            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-md flex items-center justify-center space-x-2 transition-colors">
-              <ArrowUp className="h-4 w-4" />
-              <span>Actualizar Datos</span>
-            </button>
-          </div>
         </div>
       </div>
     </>

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
-import DashboardGrid from './DashboardGrid';
+import Sidebar from './Layout/Sidebar';
+import Header from './Layout/Header';
+import DashboardGrid from './Layout/DashboardGrid';
 import StatisticsView from './Views/StatisticsView';
 import CountryView from './Views/CountryView';
-import { DashboardProvider, useDashboard } from './DashboardContext';
+import { DashboardProvider, useDashboard } from './Context/DashboardContext';
 
 const DashboardContent: React.FC = () => {
   const { currentView, selectedCountry } = useDashboard();
@@ -51,4 +51,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

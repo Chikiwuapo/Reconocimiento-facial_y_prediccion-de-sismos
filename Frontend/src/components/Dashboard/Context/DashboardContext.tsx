@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { ViewType, Country, DashboardContextType } from '../../types/dashboard';
+import { ViewType, Country, DashboardContextType } from '../../../types/dashboard';
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
