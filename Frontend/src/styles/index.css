@@ -10,12 +10,28 @@
   
   body {
     @apply bg-gray-50 text-gray-900 font-sans;
+    @apply transition-colors duration-300;
+  }
+
+  /* Dark theme base overrides */
+  [data-theme='dark'] body {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  [data-theme='dark'] h1,
+  [data-theme='dark'] h2,
+  [data-theme='dark'] h3,
+  [data-theme='dark'] h4,
+  [data-theme='dark'] h5,
+  [data-theme='dark'] h6 {
+    @apply text-gray-100;
   }
 }
 
 @layer components {
   .card {
     @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply transition-colors duration-300;
   }
   
   .sidebar-item {
@@ -33,4 +49,41 @@
   .btn-secondary {
     @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors;
   }
-} 
+
+  /* Dark theme component overrides */
+  [data-theme='dark'] .card {
+    @apply bg-gray-900 border-gray-800 text-gray-100;
+  }
+
+  [data-theme='dark'] .btn-secondary {
+    @apply bg-gray-800 text-gray-200 hover:bg-gray-700 focus:ring-gray-600;
+  }
+
+  [data-theme='dark'] .btn-primary {
+    @apply focus:ring-offset-gray-900;
+  }
+
+  /* Generic border/text helpers in dark */
+  [data-theme='dark'] * {
+    @apply border-gray-800;
+  }
+
+  /* Utility overrides for common Tailwind classes in dark mode */
+  [data-theme='dark'] .bg-white { @apply bg-gray-900; }
+  [data-theme='dark'] .bg-gray-50 { @apply bg-gray-950; }
+  [data-theme='dark'] .bg-gray-100 { @apply bg-gray-800; }
+  [data-theme='dark'] .bg-gray-200 { @apply bg-gray-700; }
+
+  [data-theme='dark'] .text-gray-900 { @apply text-gray-100; }
+  [data-theme='dark'] .text-gray-800 { @apply text-gray-100; }
+  [data-theme='dark'] .text-gray-700 { @apply text-gray-200; }
+  [data-theme='dark'] .text-gray-600 { @apply text-gray-300; }
+  [data-theme='dark'] .text-gray-500 { @apply text-gray-400; }
+
+  [data-theme='dark'] .border-gray-200 { @apply border-gray-800; }
+  [data-theme='dark'] .border-gray-300 { @apply border-gray-700; }
+
+  /* Hover helpers */
+  [data-theme='dark'] .hover\:bg-gray-100:hover { @apply bg-gray-800; }
+  [data-theme='dark'] .hover\:bg-gray-50:hover { @apply bg-gray-900; }
+}
