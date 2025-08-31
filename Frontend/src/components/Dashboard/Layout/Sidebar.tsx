@@ -203,7 +203,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
             <LogoutButton
               collapsed={collapsed}
               onLogout={() => {
-                /* TODO: integrar lógica real de logout si existe */
+                try {
+                  localStorage.removeItem('access_token');
+                } catch {}
+                window.location.href = '/?mode=login';
               }}
             />
 

@@ -1,28 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
 import './FacialLogin.css';
-import { loginFace, me } from '@/services/auth';
+import { registerUser, loginFace } from '@/services/auth';
 import { speak } from '@/utils/tts';
 
 const videoConstraints = { width: 640, height: 480, facingMode: 'user' };
 
-const FacialLogin: React.FC = () => {
+const FacialRegister: React.FC = () => {
   const webcamRef = useRef<Webcam | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [faceReady, setFaceReady] = useState(false); // FaceMesh cargado
+  const [faceReady, setFaceReady] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
   const [faceStable, setFaceStable] = useState(false);
   const stableCounterRef = useRef(0);
-  // Fases de UI para login
-  const [phase, setPhase] = useState<'idle'|'detecting'|'analyzing'|'no_match'>('idle');
-  const phaseRef = useRef<'idle'|'detecting'|'analyzing'|'no_match'>('idle');
-  const attemptActiveRef = useRef(false);
   const farRef = useRef(false);
-  const timersRef = useRef<number[]>([]);
   const lastSpeakRef = useRef<{code: string, at: number} | null>(null);
   const progressTimerRef = useRef<number | null>(null);
   const cameraRef = useRef<any>(null);
@@ -32,22 +28,14 @@ const FacialLogin: React.FC = () => {
   const farFramesRef = useRef(0);
   const nearFramesRef = useRef(0);
 
-  // Componente de LOGIN únicamente
-
-  // Mantener phase disponible en callbacks de MediaPipe
-  useEffect(() => {
-    phaseRef.current = phase;
-  }, [phase]);
-
-  const canSubmit = useMemo(() => true, []);
+  const canSubmit = useMemo(() => Boolean(username.trim()), [username]);
 
   const captureDataURL = useCallback(() => {
     const shot = webcamRef.current?.getScreenshot();
     if (!shot) throw new Error('No se pudo capturar imagen de la cámara');
-    return shot; // dataURL base64
+    return shot;
   }, []);
 
-  // Helpers de progreso
   const clearProgressTimer = useCallback(() => {
     if (progressTimerRef.current) {
       clearInterval(progressTimerRef.current);
@@ -74,14 +62,6 @@ const FacialLogin: React.FC = () => {
     setTimeout(() => setProgress(0), 700);
   }, []);
 
-  const afterLoginSuccess = useCallback((token: string) => {
-    localStorage.setItem('access_token', token);
-    setMsg('Autenticado. Redirigiendo al dashboard...');
-    // Forzamos re-render de App al cambiar el token
-    setTimeout(() => window.location.reload(), 600);
-  }, []);
-
-  // Inicializa MediaPipe FaceMesh con importación dinámica
   useEffect(() => {
     let camera: any;
     let faceMesh: any;
@@ -104,8 +84,8 @@ const FacialLogin: React.FC = () => {
         faceMesh.setOptions({
           maxNumFaces: 1,
           refineLandmarks: true,
-          minDetectionConfidence: 0.4, // más permisivo para demo
-          minTrackingConfidence: 0.4,  // más permisivo para demo
+          minDetectionConfidence: 0.4,
+          minTrackingConfidence: 0.4,
         });
 
         faceMesh.onResults((results: any) => {
@@ -122,10 +102,9 @@ const FacialLogin: React.FC = () => {
           if (landmarks) {
             setFaceDetected(true);
             stableCounterRef.current = Math.min(stableCounterRef.current + 1, 9999);
-            if (stableCounterRef.current > 3) setFaceStable(true); // umbral más rápido para habilitar acciones
+            if (stableCounterRef.current > 3) setFaceStable(true);
 
-            // Calcular "lejanía" aproximada usando distancia interocular (landmarks 33 y 263)
-            // Histéresis: exigir 3 frames consecutivos para cambiar de estado
+            // Distancia interocular como proxy de lejanía
             let isFar = false;
             try {
               const L = landmarks[33];
@@ -133,8 +112,8 @@ const FacialLogin: React.FC = () => {
               if (L && R) {
                 const dx = (L.x - R.x);
                 const dy = (L.y - R.y);
-                const dist = Math.hypot(dx, dy); // ~proporcional al tamaño de rostro
-                const FAR_THRESHOLD = 0.12; // umbral más sensible para detectar "lejos"
+                const dist = Math.hypot(dx, dy);
+                const FAR_THRESHOLD = 0.12;
                 const rawFar = dist < FAR_THRESHOLD;
                 if (rawFar) {
                   farFramesRef.current = Math.min(farFramesRef.current + 1, 10);
@@ -144,30 +123,17 @@ const FacialLogin: React.FC = () => {
                   farFramesRef.current = 0;
                 }
                 if (farRef.current) {
-                  // Para volver a "cerca" requerimos 3 frames cerca
                   if (nearFramesRef.current >= 3) isFar = false; else isFar = true;
                 } else {
-                  // Para pasar a "lejos" requerimos 3 frames lejos
                   if (farFramesRef.current >= 3) isFar = true; else isFar = false;
                 }
               }
             } catch {}
             farRef.current = isFar;
 
-            // Dibujo de conectores y puntos
-            // drawConnectors: necesitamos las mallas FACEMESH_TESSELATION / etc.
-            // Para evitar import adicional de constantes, dibujamos solo puntos.
-            // Color con prioridad: rojo (no_match) > rosa (lejos) > fases (login) > verde
-            let color = '#22c55e'; // verde por defecto
-            if (phaseRef.current === 'no_match') {
-              color = '#EF4444'; // rojo
-            } else if (farRef.current) {
-              color = '#EC4899'; // rosa
-            } else if (attemptActiveRef.current) {
-              if (phaseRef.current === 'detecting') color = '#3B82F6'; // azul
-              else if (phaseRef.current === 'analyzing') color = '#F59E0B'; // amarillo
-            }
-            // Dibujo manual de puntos (más control de color/visibilidad que drawLandmarks)
+            // Pintado de puntos con color por estado
+            let color = '#22c55e';
+            if (farRef.current) color = '#EC4899';
             const w = canvasEl.width;
             const h = canvasEl.height;
             ctx.save();
@@ -183,9 +149,7 @@ const FacialLogin: React.FC = () => {
             }
             ctx.restore();
 
-            // Aviso en tiempo real si estás lejos (anti-spam) en login y registro.
-            // Evitar hablar si estamos en estado rojo (no_match)
-            if (farRef.current && phaseRef.current !== 'no_match') {
+            if (farRef.current) {
               sayOnce('far', 'Estas muy lejos', 1500);
             }
           } else {
@@ -206,17 +170,15 @@ const FacialLogin: React.FC = () => {
 
         camera.start();
         setFaceReady(true);
-        // Guardar refs para reinicios
         cameraRef.current = camera;
         faceMeshRef.current = faceMesh;
         runningRef.current = true;
       } catch (e) {
-        console.warn('FaceMesh no disponible. Instala @mediapipe/face_mesh, @mediapipe/camera_utils, @mediapipe/drawing_utils');
+        console.warn('FaceMesh no disponible. Instala @mediapipe/face_mesh, @mediapipe/camera_utils');
         setFaceReady(false);
       }
     }
 
-    // Espera a que el video esté listo
     const waitForVideo = setInterval(() => {
       const video = (webcamRef.current as any)?.video as HTMLVideoElement | undefined;
       if (video && video.readyState >= 2) {
@@ -225,7 +187,6 @@ const FacialLogin: React.FC = () => {
       }
     }, 200);
 
-    // Watchdog: si no se dibuja por >2s y el video está listo, intentamos relanzar frame
     const watchdog = window.setInterval(() => {
       const video = (webcamRef.current as any)?.video as HTMLVideoElement | undefined;
       if (!video) return;
@@ -240,11 +201,9 @@ const FacialLogin: React.FC = () => {
       if (!video) return;
       if (video.readyState >= 2) {
         try {
-          // Si no hay frames recientes, intenta relanzar
           if (Date.now() - lastDrawAtRef.current > 2000) {
             faceMeshRef.current && faceMeshRef.current.send({ image: video });
           }
-          // Si la cámara se detuvo, reiniciar
           if (cameraRef.current && cameraRef.current.start) cameraRef.current.start();
         } catch {}
       }
@@ -253,8 +212,6 @@ const FacialLogin: React.FC = () => {
     window.addEventListener('focus', onVisibleOrFocus);
 
     return () => {
-      running = false;
-      runningRef.current = false;
       try { camera && camera.stop && camera.stop(); } catch {}
       window.clearInterval(watchdog);
       window.removeEventListener('visibilitychange', onVisibleOrFocus);
@@ -262,88 +219,40 @@ const FacialLogin: React.FC = () => {
     };
   }, []);
 
-  // Sin handleRegister: este componente es solo para login
-
-  const handleLogin = async () => {
+  const handleRegister = useCallback(async () => {
     try {
       setLoading(true);
-      // Progreso por fases
-      setProgress(0);
       setError(null);
       setMsg(null);
-      // Activar intento y fases de UI con TTS
-      attemptActiveRef.current = true;
-      timersRef.current.forEach((t) => clearTimeout(t));
-      timersRef.current = [];
-      setPhase('detecting');
-      sayOnce('detecting', 'Detectando rostro', 1200);
-      animateProgressTo(35, 2000);
-      timersRef.current.push(window.setTimeout(() => {
-        if (!attemptActiveRef.current) return;
-        if (farRef.current) {
-          sayOnce('far', 'Estas muy lejos', 1000);
-        }
-        setPhase('analyzing');
-        sayOnce('analyzing', 'Analizando rostro', 1200);
-        animateProgressTo(70, 2000);
-      }, 2000));
-      // Intentar login tras 4s (2s azul + 2s amarillo)
-      await new Promise<void>((resolve) => {
-        const t = window.setTimeout(() => { resolve(); }, 4000);
-        timersRef.current.push(t);
-      });
-      if (!attemptActiveRef.current) return; // abortado
-      animateProgressTo(90, 1200);
-      // Reintentos automáticos: hasta 3 capturas secuenciales
-      const tryOnce = async () => {
-        const face_image = captureDataURL();
-        const { access_token } = await loginFace({ face_image });
-        return access_token as string;
-      };
-      let access_token: string | null = null;
-      let lastErr: any = null;
-      for (let i = 0; i < 3; i++) {
-        try {
-          access_token = await tryOnce();
-          break;
-        } catch (err) {
-          lastErr = err;
-          // pequeña espera entre reintentos
-          await new Promise((r) => setTimeout(r, 200));
-        }
+      // Fases/feedback
+      animateProgressTo(35, 1500);
+      // Capturar
+      const face_image = captureDataURL();
+      // Registrar
+      const u = await registerUser({ username: username.trim(), face_image });
+      if (u?.username) {
+        try { localStorage.setItem('username', u.username); } catch {}
+        speak(`Gracias por registrarte, ${u.username}`);
+      } else {
+        try { localStorage.setItem('username', username.trim()); } catch {}
+        speak(`Gracias por registrarte, ${username.trim()}`);
       }
-      if (!access_token) throw lastErr || new Error('No se pudo autenticar');
-      // Obtener username y anunciar TTS
-      try {
-        const meData = await me(access_token);
-        if (meData?.username) {
-          try { localStorage.setItem('username', meData.username); } catch {}
-          speak(`Bienvenido, ${meData.username}`);
-        }
-      } catch {}
-      clearProgressTimer();
+      setMsg('Registro exitoso. Iniciando sesión...');
+      animateProgressTo(70, 1200);
+      // Auto-login con misma captura
+      const { access_token } = await loginFace({ face_image });
+      animateProgressTo(95, 800);
       finishProgress();
-      setMsg('Login exitoso. Redirigiendo...');
-      afterLoginSuccess(access_token);
-      attemptActiveRef.current = false;
-      setPhase('idle');
+      try { localStorage.setItem('access_token', access_token); } catch {}
+      setTimeout(() => window.location.reload(), 600);
     } catch (e: any) {
-      clearProgressTimer();
-      // En fallo no llevar a 100: mantener ~70-80 y resetear
-      setProgress((p) => (p < 70 ? 70 : p));
-      setTimeout(() => setProgress(0), 800);
-      // Suprimir detalle del backend, y reflejar solo estado rojo + voz
-      setError(null);
       setMsg(null);
-      setPhase('no_match');
-      sayOnce('no_match', 'Sin registros', 800);
-      attemptActiveRef.current = false;
+      setError(e?.message || 'Error al registrar');
     } finally {
       setLoading(false);
     }
-  };
+  }, [username, captureDataURL, animateProgressTo, finishProgress]);
 
-  // Evitar spam de voz
   const sayOnce = (code: string, text: string, minIntervalMs: number) => {
     const now = Date.now();
     if (lastSpeakRef.current && lastSpeakRef.current.code === code && now - lastSpeakRef.current.at < minIntervalMs) return;
@@ -354,7 +263,7 @@ const FacialLogin: React.FC = () => {
   return (
     <div className="fl-container">
       <div className="fl-card">
-        <h1 className="fl-title">Login Facial</h1>
+        <h1 className="fl-title">Registro Facial</h1>
         <div className="fl-content">
           <div className="fl-camera">
             <div className="fl-video-wrap">
@@ -389,21 +298,23 @@ const FacialLogin: React.FC = () => {
           </div>
 
           <div className="fl-form">
-            {/* Componente de login: no se solicita usuario aquí */}
+            <label className="fl-label">
+              Usuario
+              <input
+                className="fl-input"
+                placeholder="tu usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
+              />
+            </label>
 
             <div className="fl-actions">
               <>
                 <button
                   className="fl-btn primary"
                   disabled={!canSubmit || loading || !faceDetected}
-                  onClick={handleLogin}
-                >
-                  {loading ? 'Procesando...' : 'Iniciar sesión (facial)'}
-                </button>
-                <button
-                  className="fl-btn"
-                  disabled={loading}
-                  onClick={() => { window.location.href='/?mode=register'; }}
+                  onClick={handleRegister}
                 >
                   {loading ? 'Procesando...' : 'Registrar rostro'}
                 </button>
@@ -419,4 +330,4 @@ const FacialLogin: React.FC = () => {
   );
 };
 
-export default FacialLogin;
+export default FacialRegister;

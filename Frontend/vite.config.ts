@@ -18,6 +18,13 @@ export default defineConfig({
     port: 3000,
     open: true,
     host: true,
+    proxy: {
+      '/auth': {
+        target: 'http://localhost:8001',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   build: {
     outDir: 'dist',
@@ -36,4 +43,4 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react', 'react-dom', 'recharts', 'lucide-react', 'react-leaflet', 'leaflet'],
   },
-}) 
+})

@@ -1,14 +1,44 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dashboard } from './components/Dashboard';
 import ErrorBoundary from './components/Dashboard/Layout/ErrorBoundary';
 import './styles/index.css';
 import { ThemeProvider } from './context/ThemeContext';
+import FacialLogin from './auth/FacialLogin';
+import { me } from './services/auth';
+import FacialRegister from './auth/FacialRegister';
 
 const App: React.FC = () => {
+  const [authState, setAuthState] = useState<'checking' | 'authed' | 'guest'>('checking');
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setAuthState('guest');
+      return;
+    }
+    // Validar token con el backend; si falla, limpiar y mostrar login
+    me(token)
+      .then(() => setAuthState('authed'))
+      .catch(() => {
+        try { localStorage.removeItem('access_token'); } catch {}
+        setAuthState('guest');
+      });
+  }, []);
+
   return (
     <ThemeProvider>
       <ErrorBoundary>
-        <Dashboard />
+        {authState === 'checking' ? (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh'}}>Cargando…</div>
+        ) : authState === 'authed' ? (
+          <Dashboard />
+        ) : (
+          (() => {
+            const params = new URLSearchParams(window.location.search);
+            const mode = (params.get('mode') || '').toLowerCase();
+            return mode === 'register' ? <FacialRegister /> : <FacialLogin />;
+          })()
+        )}
       </ErrorBoundary>
     </ThemeProvider>
   );
