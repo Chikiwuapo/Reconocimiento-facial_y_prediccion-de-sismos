@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import type { Country } from '../../../../types/dashboard';
 import AppModal from '../../../Common/AppModal';
 import { useDashboard } from '../../Context/DashboardContext';
+import { useTheme } from '../../../../context/ThemeContext';
 
 export type TimeRange = '24h' | '7d' | '30d';
 
@@ -122,6 +123,7 @@ const normKey = (s: string) => {
 };
 
 const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], zoom = 3, disableInteractions = false, countries = [], shadeEnabled = true }) => {
+  const { theme } = useTheme();
   const { setSelectedCountry: setCtxCountry, setCurrentView } = useDashboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -160,20 +162,42 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
   };
 
   return (
-    <div className="h-96 md:h-[28rem] relative rounded-lg overflow-hidden border border-gray-200">
+    <div className={`h-96 md:h-[28rem] relative rounded-lg overflow-hidden border ${
+      theme === 'dark' ? 'border-gray-700' : 'border-gray-200'
+    }`}>
       {disableInteractions && (
-        <div className="absolute z-20 top-2 right-2 bg-white/90 text-gray-700 text-xs px-2 py-1 rounded-md shadow pointer-events-none">
+        <div className={`absolute z-20 top-2 right-2 text-xs px-2 py-1 rounded-md shadow pointer-events-none ${
+          theme === 'dark' 
+            ? 'bg-gray-800/90 text-gray-300 border border-gray-600' 
+            : 'bg-white/90 text-gray-700 border border-gray-200'
+        }`}>
           Mapa estático · selecciona un país para explorar
         </div>
       )}
       {/* Leyenda de colores */}
-      <div className="absolute z-20 bottom-3 left-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-md shadow px-3 py-2 text-xs text-gray-700">
-        <div className="font-medium text-gray-900 mb-1">Leyenda</div>
+      <div className={`absolute z-20 bottom-3 left-3 backdrop-blur-sm border rounded-md shadow px-3 py-2 text-xs ${
+        theme === 'dark' 
+          ? 'bg-gray-800/95 border-gray-600 text-gray-300' 
+          : 'bg-white/95 border-gray-200 text-gray-700'
+      }`}>
+        <div className={`font-medium mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Leyenda</div>
         <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#22c55e'}}></span><span>Leve (&lt; 4.0)</span></div>
-          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#f59e0b'}}></span><span>Moderado (4.0–4.9)</span></div>
-          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#f97316'}}></span><span>Fuerte (5.0–5.9)</span></div>
-          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#ef4444'}}></span><span>Intenso (6.0+)</span></div>
+          <div className="flex items-center space-x-1">
+            <span className="inline-block w-3 h-3 rounded-full" style={{background:'#22c55e'}}></span>
+            <span>Leve (&lt; 4.0)</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <span className="inline-block w-3 h-3 rounded-full" style={{background:'#f59e0b'}}></span>
+            <span>Moderado (4.0–4.9)</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <span className="inline-block w-3 h-3 rounded-full" style={{background:'#f97316'}}></span>
+            <span>Fuerte (5.0–5.9)</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <span className="inline-block w-3 h-3 rounded-full" style={{background:'#ef4444'}}></span>
+            <span>Intenso (6.0+)</span>
+          </div>
         </div>
       </div>
       <MapContainer
@@ -245,23 +269,27 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
               offset={[0, -10]} 
               opacity={1} 
               permanent={false} 
-              className="!bg-white !text-gray-800 !shadow-lg !rounded !px-2 !py-1 !border !border-gray-200"
+              className={`!shadow-lg !rounded !px-2 !py-1 !border ${
+                theme === 'dark' 
+                  ? '!bg-gray-800 !text-gray-200 !border-gray-600' 
+                  : '!bg-white !text-gray-800 !border-gray-200'
+              }`}
             >
               <div className="text-xs min-w-[120px]">
                 <div className="font-bold text-sm mb-1">{c.name}</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-600">Riesgo:</span>
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Riesgo:</span>
                   <span className={`font-semibold ${
-                    c.riskLevel === 'very-high' ? 'text-red-600' : 
-                    c.riskLevel === 'high' ? 'text-orange-600' : 
-                    c.riskLevel === 'medium' ? 'text-yellow-600' : 'text-green-600'
+                    c.riskLevel === 'very-high' ? 'text-red-500' : 
+                    c.riskLevel === 'high' ? 'text-orange-500' : 
+                    c.riskLevel === 'medium' ? 'text-yellow-500' : 'text-green-500'
                   }`}>
                     {c.riskLevel.toUpperCase()}
                   </span>
                 </div>
                 {c.magnitude > 0 && (
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-gray-600">Magnitud:</span>
+                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>Magnitud:</span>
                     <span className="font-semibold">{c.magnitude.toFixed(1)}</span>
                   </div>
                 )}
@@ -282,11 +310,21 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
               }
             }}
           >
-            <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false} className="!bg-white !text-gray-800 !shadow !rounded !px-2 !py-1">
+            <Tooltip 
+              direction="top" 
+              offset={[0, -10]} 
+              opacity={1} 
+              permanent={false} 
+              className={`!shadow !rounded !px-2 !py-1 ${
+                theme === 'dark' 
+                  ? '!bg-gray-800 !text-gray-200 !border-gray-600' 
+                  : '!bg-white !text-gray-800 !border-gray-200'
+              }`}
+            >
               <div className="text-xs">
                 <div className="font-semibold">Mw {eq.magnitude.toFixed(1)}</div>
-                <div className="text-gray-600">{eq.location}</div>
-                <div className="text-gray-500">{new Date(eq.date).toLocaleString()}</div>
+                <div className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>{eq.location}</div>
+                <div className={theme === 'dark' ? 'text-gray-500' : 'text-gray-500'}>{new Date(eq.date).toLocaleString()}</div>
               </div>
             </Tooltip>
           </Marker>
@@ -305,7 +343,7 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
             {selectedLatest ? (
               <>
                 <div className="border-b pb-2">
-                  <div className="font-semibold text-gray-900 mb-2">🌍 {selectedCountry.name}</div>
+                  <div className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>🌍 {selectedCountry.name}</div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="font-medium">Nivel de Riesgo:</span> 
                       <span className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
@@ -322,7 +360,7 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="font-semibold text-gray-900">📈 Último Sismo Registrado</div>
+                  <div className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>📈 Último Sismo Registrado</div>
                   <div><span className="font-medium">Magnitud:</span> Mw {selectedLatest.magnitude.toFixed(1)}</div>
                   <div><span className="font-medium">Fecha y hora:</span> {new Date(selectedLatest.date).toLocaleString()}</div>
                   <div><span className="font-medium">Ubicación:</span> {selectedLatest.location}</div>
@@ -330,7 +368,7 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
                 </div>
                 
                 <div className="pt-2 border-t">
-                  <div className="text-xs text-gray-600">
+                  <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                     💡 Haz clic en "Ver estadísticas" para obtener información detallada de {selectedCountry.name}
                   </div>
                 </div>
@@ -338,7 +376,7 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
             ) : (
               <div className="space-y-3">
                 <div className="border-b pb-2">
-                  <div className="font-semibold text-gray-900 mb-2">🌍 {selectedCountry.name}</div>
+                  <div className={`font-semibold mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>🌍 {selectedCountry.name}</div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div><span className="font-medium">Nivel de Riesgo:</span> 
                       <span className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
@@ -354,12 +392,12 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
                   </div>
                 </div>
                 
-                <div className="text-gray-600">
+                <div className={theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
                   ⚠️ No hay sismos recientes registrados para este país en el rango seleccionado.
                 </div>
                 
                 <div className="pt-2 border-t">
-                  <div className="text-xs text-gray-600">
+                  <div className={`text-xs ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
                     💡 Haz clic en "Ver estadísticas" para obtener información detallada de {selectedCountry.name}
                   </div>
                 </div>
@@ -367,7 +405,7 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
             )}
           </div>
         ) : (
-          <div className="text-sm text-gray-600">🗺️ Selecciona un país o un sismo para ver detalles.</div>
+          <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>🗺️ Selecciona un país o un sismo para ver detalles.</div>
         )}
       </AppModal>
     </div>
