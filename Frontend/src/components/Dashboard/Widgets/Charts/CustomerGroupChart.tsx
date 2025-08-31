@@ -34,7 +34,7 @@ const CustomerGroupChart: React.FC = () => {
             <Legend 
               verticalAlign="bottom" 
               height={36}
-              formatter={(value, entry, index) => (
+              formatter={(value) => (
                 <span className="text-sm text-gray-700">
                   {value}
                 </span>

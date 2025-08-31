@@ -22,6 +22,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user }) =>
     } else {
       setVisible(false);
     }
+    return undefined;
   }, [isOpen]);
 
   if (!isOpen) return null;

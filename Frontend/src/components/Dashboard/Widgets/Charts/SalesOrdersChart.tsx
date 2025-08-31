@@ -33,7 +33,7 @@ const SalesOrdersChart: React.FC = () => {
             <Legend 
               verticalAlign="bottom" 
               height={36}
-              formatter={(value, entry, index) => (
+              formatter={(value) => (
                 <span className="text-sm text-gray-700">
                   {value.length > 8 ? value.substring(0, 8) + '...' : value}
                 </span>

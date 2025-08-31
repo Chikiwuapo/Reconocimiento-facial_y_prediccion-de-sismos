@@ -19,6 +19,10 @@ export interface DashboardContextType {
   setCurrentWorkspace: (workspace: string) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  countries: Country[];
+  statistics: any;
+  loading: boolean;
+  error: string | null;
 }
 
 export interface EarthquakeData {
@@ -32,6 +36,8 @@ export interface RiskDistribution {
   name: string;
   value: number;
   color: string;
+  range?: string;
+  count?: number;
 }
 
 export interface CountryEarthquakeStats {

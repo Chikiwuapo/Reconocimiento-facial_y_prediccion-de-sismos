@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3 } from 'lucide-react';
+
 
 const ItemSalesChart: React.FC = () => {
   const items = [

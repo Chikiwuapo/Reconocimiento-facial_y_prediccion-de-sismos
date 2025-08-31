@@ -46,7 +46,7 @@ const RevenueExpensesChart: React.FC = () => {
             <YAxis domain={[-2, 2]} tickFormatter={(value) => `${value}M`} />
             <Tooltip 
               formatter={(value, name) => [
-                `${value > 0 ? '+' : ''}${value}M`, 
+                `${Number(value) > 0 ? '+' : ''}${value}M`, 
                 name === 'revenue' ? 'Total Revenue' : 
                 name === 'expenses' ? 'Total Expenditure' : 'Earnings Before Interest'
               ]}

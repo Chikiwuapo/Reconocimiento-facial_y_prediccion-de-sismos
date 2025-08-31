@@ -205,16 +205,69 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
         {...(selectedCountry ? { primaryActionLabel: `Ver estadísticas de ${selectedCountry.name}`, onPrimaryAction: goToStats } : {})}
       >
         {selectedCountry ? (
-          <div className="space-y-2 text-sm">
+          <div className="space-y-3 text-sm">
             {selectedLatest ? (
               <>
-                <div><span className="font-medium">📈 Último sismo:</span> Mw {selectedLatest.magnitude.toFixed(1)}</div>
-                <div><span className="font-medium">🕒 Fecha y hora:</span> {new Date(selectedLatest.date).toLocaleString()}</div>
-                <div><span className="font-medium">📍 Ubicación:</span> {selectedLatest.location}</div>
-                <div><span className="font-medium">🧭 Coordenadas:</span> {selectedCountry.coordinates[0].toFixed(3)}, {selectedCountry.coordinates[1].toFixed(3)}</div>
+                <div className="border-b pb-2">
+                  <div className="font-semibold text-gray-900 mb-2">🌍 {selectedCountry.name}</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="font-medium">Nivel de Riesgo:</span> 
+                      <span className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
+                        selectedCountry.riskLevel === 'very-high' ? 'bg-red-100 text-red-800' :
+                        selectedCountry.riskLevel === 'high' ? 'bg-orange-100 text-orange-800' :
+                        selectedCountry.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {selectedCountry.riskLevel.toUpperCase()}
+                      </span>
+                    </div>
+                    <div><span className="font-medium">Magnitud Máx:</span> M{selectedCountry.magnitude?.toFixed(1) || '0.0'}</div>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="font-semibold text-gray-900">📈 Último Sismo Registrado</div>
+                  <div><span className="font-medium">Magnitud:</span> Mw {selectedLatest.magnitude.toFixed(1)}</div>
+                  <div><span className="font-medium">Fecha y hora:</span> {new Date(selectedLatest.date).toLocaleString()}</div>
+                  <div><span className="font-medium">Ubicación:</span> {selectedLatest.location}</div>
+                  <div><span className="font-medium">Coordenadas:</span> {selectedCountry.coordinates[0].toFixed(3)}, {selectedCountry.coordinates[1].toFixed(3)}</div>
+                </div>
+                
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-gray-600">
+                    💡 Haz clic en "Ver estadísticas" para obtener información detallada de {selectedCountry.name}
+                  </div>
+                </div>
               </>
             ) : (
-              <div className="text-gray-600">⚠️ No hay sismos recientes registrados para este país en el rango seleccionado.</div>
+              <div className="space-y-3">
+                <div className="border-b pb-2">
+                  <div className="font-semibold text-gray-900 mb-2">🌍 {selectedCountry.name}</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div><span className="font-medium">Nivel de Riesgo:</span> 
+                      <span className={`ml-1 px-2 py-1 rounded text-xs font-medium ${
+                        selectedCountry.riskLevel === 'very-high' ? 'bg-red-100 text-red-800' :
+                        selectedCountry.riskLevel === 'high' ? 'bg-orange-100 text-orange-800' :
+                        selectedCountry.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {selectedCountry.riskLevel.toUpperCase()}
+                      </span>
+                    </div>
+                    <div><span className="font-medium">Magnitud Máx:</span> M{selectedCountry.magnitude?.toFixed(1) || '0.0'}</div>
+                  </div>
+                </div>
+                
+                <div className="text-gray-600">
+                  ⚠️ No hay sismos recientes registrados para este país en el rango seleccionado.
+                </div>
+                
+                <div className="pt-2 border-t">
+                  <div className="text-xs text-gray-600">
+                    💡 Haz clic en "Ver estadísticas" para obtener información detallada de {selectedCountry.name}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         ) : (

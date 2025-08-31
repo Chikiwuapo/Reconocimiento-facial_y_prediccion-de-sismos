@@ -22,149 +22,21 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
   const [collapsed, setCollapsed] = React.useState(false);
   const [countriesOpen, setCountriesOpen] = React.useState(true);
-  const { currentView, setCurrentView, selectedCountry, setSelectedCountry } =
+  const { currentView, setCurrentView, selectedCountry, setSelectedCountry, countries, loading, error } =
     useDashboard();
 
-  const southAmericanCountries: Country[] = [
-    {
-      id: "brazil",
-      name: "Brasil",
-      code: "BR",
-      coordinates: [-15.7801, -47.9292] as [number, number],
-      riskLevel: "medium",
-      lastEarthquake: "2024-01-15",
-      magnitude: 4.2,
-    },
-    {
-      id: "argentina",
-      name: "Argentina",
-      code: "AR",
-      coordinates: [-34.6118, -58.396] as [number, number],
-      riskLevel: "high",
-      lastEarthquake: "2024-01-20",
-      magnitude: 5.1,
-    },
-    {
-      id: "chile",
-      name: "Chile",
-      code: "CL",
-      coordinates: [-33.4489, -70.6693] as [number, number],
-      riskLevel: "very-high",
-      lastEarthquake: "2024-01-18",
-      magnitude: 6.3,
-    },
-    {
-      id: "colombia",
-      name: "Colombia",
-      code: "CO",
-      coordinates: [4.711, -74.0721] as [number, number],
-      riskLevel: "medium",
-      lastEarthquake: "2024-01-22",
-      magnitude: 4.8,
-    },
-    {
-      id: "peru",
-      name: "Perú",
-      code: "PE",
-      coordinates: [-12.0464, -77.0428] as [number, number],
-      riskLevel: "high",
-      lastEarthquake: "2024-01-19",
-      magnitude: 5.5,
-    },
-    {
-      id: "venezuela",
-      name: "Venezuela",
-      code: "VE",
-      coordinates: [10.4806, -66.9036] as [number, number],
-      riskLevel: "low",
-      lastEarthquake: "2024-01-25",
-      magnitude: 3.9,
-    },
-    {
-      id: "ecuador",
-      name: "Ecuador",
-      code: "EC",
-      coordinates: [-0.2299, -78.5249] as [number, number],
-      riskLevel: "high",
-      lastEarthquake: "2024-01-21",
-      magnitude: 5.2,
-    },
-    {
-      id: "bolivia",
-      name: "Bolivia",
-      code: "BO",
-      coordinates: [-16.4897, -68.1193] as [number, number],
-      riskLevel: "medium",
-      lastEarthquake: "2024-01-23",
-      magnitude: 4.5,
-    },
-    {
-      id: "paraguay",
-      name: "Paraguay",
-      code: "PY",
-      coordinates: [-25.2637, -57.5759] as [number, number],
-      riskLevel: "low",
-      lastEarthquake: "2024-01-24",
-      magnitude: 3.2,
-    },
-    {
-      id: "uruguay",
-      name: "Uruguay",
-      code: "UY",
-      coordinates: [-34.9011, -56.1645] as [number, number],
-      riskLevel: "low",
-      lastEarthquake: "2024-01-26",
-      magnitude: 2.8,
-    },
-    {
-      id: "guyana",
-      name: "Guyana",
-      code: "GY",
-      coordinates: [6.8013, -58.1553] as [number, number],
-      riskLevel: "low",
-      lastEarthquake: "2024-01-27",
-      magnitude: 3.1,
-    },
-    {
-      id: "suriname",
-      name: "Suriname",
-      code: "SR",
-      coordinates: [5.852, -55.2038] as [number, number],
-      riskLevel: "low",
-      lastEarthquake: "2024-01-28",
-      magnitude: 2.9,
-    },
-  ];
+  // Convertir datos de la API al formato del frontend
+  const southAmericanCountries: Country[] = countries.map(country => ({
+    id: country.id,
+    name: country.name,
+    code: country.code,
+    coordinates: country.coordinates,
+    riskLevel: country.riskLevel as 'low' | 'medium' | 'high' | 'very-high',
+    lastEarthquake: country.lastEarthquake,
+    magnitude: country.magnitude,
+  }));
 
-  const getRiskLevelColor = (riskLevel: string) => {
-    switch (riskLevel) {
-      case "very-high":
-        return "text-red-500";
-      case "high":
-        return "text-orange-500";
-      case "medium":
-        return "text-yellow-500";
-      case "low":
-        return "text-green-500";
-      default:
-        return "text-gray-500";
-    }
-  };
 
-  const getRiskLevelIcon = (riskLevel: string) => {
-    switch (riskLevel) {
-      case "very-high":
-        return "🔴";
-      case "high":
-        return "🟠";
-      case "medium":
-        return "🟡";
-      case "low":
-        return "🟢";
-      default:
-        return "⚪";
-    }
-  };
 
   return (
     <>
@@ -292,40 +164,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         : "max-h-0 opacity-0 -translate-y-2"
     }`}
                 >
-                  {southAmericanCountries.map((country) => (
-                    <button
-                      key={country.id}
-                      onClick={() => {
-                        setSelectedCountry(country);
-                        setCurrentView("country");
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-all duration-300 hover:translate-x-1
-          ${
-            currentView === "country" && selectedCountry?.id === country.id
-              ? "bg-red-600 text-white"
-              : "text-gray-400 hover:bg-gray-800 hover:text-white"
-          }`}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <span className="text-lg">
-                          {getRiskLevelIcon(country.riskLevel)}
-                        </span>
+                  {loading ? (
+                    <div className="text-gray-400 text-sm px-3 py-2">Cargando países...</div>
+                  ) : error ? (
+                    <div className="text-red-400 text-sm px-3 py-2">Error: {error}</div>
+                  ) : (
+                    southAmericanCountries.map((country) => (
+                      <button
+                        key={country.id}
+                        onClick={() => {
+                          setSelectedCountry(country);
+                          setCurrentView("country");
+                        }}
+                        className={`w-full flex items-center px-3 py-2 rounded-md text-sm transition-all duration-300 hover:translate-x-1
+            ${
+              currentView === "country" && selectedCountry?.id === country.id
+                ? "bg-red-600 text-white"
+                : "text-gray-400 hover:bg-gray-800 hover:text-white"
+            }`}
+                      >
                         <span>{country.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span
-                          className={`text-xs ${getRiskLevelColor(
-                            country.riskLevel
-                          )}`}
-                        >
-                          {country.riskLevel.toUpperCase()}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          M{country.magnitude}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>

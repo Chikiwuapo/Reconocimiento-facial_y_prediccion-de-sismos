@@ -1,7 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import SeismicMap, { EarthquakePoint } from '../Widgets/Charts/SeismicMap';
 import { AlertTriangle, Activity, MapPin, TrendingUp, Timer, ListChecks } from 'lucide-react';
 import type { Country } from '../../../types/dashboard';
+import { earthquakeService, DashboardData } from '../../../services/earthquakeService';
 
 const DashboardGrid: React.FC = () => {
   // Time range filter
@@ -11,42 +12,78 @@ const DashboardGrid: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<[number, number]>([-15.78, -60]);
   const [mapZoom, setMapZoom] = useState<number>(4);
   const [interactionsEnabled, setInteractionsEnabled] = useState<boolean>(false);
+  
+  // Estado para datos del dashboard
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mocked earthquake data (replace with API hook when available)
-  const allData: EarthquakePoint[] = useMemo(() => ([
-    { id: '1', lat: -33.45, lng: -70.67, magnitude: 5.6, location: 'Chile', date: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString() },
-    { id: '2', lat: -12.0464, lng: -77.0428, magnitude: 4.8, location: 'Perú', date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: '3', lat: -34.6037, lng: -58.3816, magnitude: 3.9, location: 'Argentina', date: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString() },
-    { id: '4', lat: 4.7110, lng: -74.0721, magnitude: 4.2, location: 'Colombia', date: new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString() },
-    { id: '5', lat: -0.2299, lng: -78.5249, magnitude: 5.1, location: 'Ecuador', date: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString() },
-  ]), []);
+  // Cargar datos del dashboard
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const data = await earthquakeService.getDashboardData(range);
+        setDashboardData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error al cargar datos');
+        console.error('Error loading dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredData = useMemo(() => {
-    const now = Date.now();
-    const limits = { '24h': 24 * 60 * 60 * 1000, '7d': 7 * 24 * 60 * 60 * 1000, '30d': 30 * 24 * 60 * 60 * 1000 } as const;
-    const windowMs = limits[range];
-    return allData.filter(d => now - new Date(d.date).getTime() <= windowMs);
-  }, [allData, range]);
+    loadDashboardData();
+  }, [range]);
 
-  // KPI calculations
-  const lastQuake = useMemo(() => allData.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0], [allData]);
-  const weekCount = useMemo(() => filteredData.length, [filteredData]);
-  const highestRisk = 'Perú (Alto)'; // Placeholder; compute from risk model when available
+  // Convertir datos de la API al formato del mapa
+  const mapData: EarthquakePoint[] = useMemo(() => {
+    if (!dashboardData) return [];
+    
+    return dashboardData.map_data.map(eq => ({
+      id: eq.id,
+      lat: eq.lat,
+      lng: eq.lng,
+      magnitude: eq.magnitude,
+      location: eq.location,
+      date: eq.date
+    }));
+  }, [dashboardData]);
 
-  const countries: Country[] = [
-    { id: 'brazil', name: 'Brasil', code: 'BR', coordinates: [-15.7801, -47.9292], riskLevel: 'medium', lastEarthquake: new Date().toISOString(), magnitude: 4.2 },
-    { id: 'argentina', name: 'Argentina', code: 'AR', coordinates: [-34.6118, -58.3960], riskLevel: 'high', lastEarthquake: new Date().toISOString(), magnitude: 5.1 },
-    { id: 'chile', name: 'Chile', code: 'CL', coordinates: [-33.4489, -70.6693], riskLevel: 'very-high', lastEarthquake: new Date().toISOString(), magnitude: 6.3 },
-    { id: 'colombia', name: 'Colombia', code: 'CO', coordinates: [4.7110, -74.0721], riskLevel: 'medium', lastEarthquake: new Date().toISOString(), magnitude: 4.8 },
-    { id: 'peru', name: 'Perú', code: 'PE', coordinates: [-12.0464, -77.0428], riskLevel: 'high', lastEarthquake: new Date().toISOString(), magnitude: 5.5 },
-    { id: 'venezuela', name: 'Venezuela', code: 'VE', coordinates: [10.4806, -66.9036], riskLevel: 'low', lastEarthquake: new Date().toISOString(), magnitude: 3.9 },
-    { id: 'ecuador', name: 'Ecuador', code: 'EC', coordinates: [-0.2299, -78.5249], riskLevel: 'high', lastEarthquake: new Date().toISOString(), magnitude: 5.2 },
-    { id: 'bolivia', name: 'Bolivia', code: 'BO', coordinates: [-16.4897, -68.1193], riskLevel: 'medium', lastEarthquake: new Date().toISOString(), magnitude: 4.5 },
-    { id: 'paraguay', name: 'Paraguay', code: 'PY', coordinates: [-25.2637, -57.5759], riskLevel: 'low', lastEarthquake: new Date().toISOString(), magnitude: 3.2 },
-    { id: 'uruguay', name: 'Uruguay', code: 'UY', coordinates: [-34.9011, -56.1645], riskLevel: 'low', lastEarthquake: new Date().toISOString(), magnitude: 2.8 },
-    { id: 'guyana', name: 'Guyana', code: 'GY', coordinates: [6.8013, -58.1553], riskLevel: 'low', lastEarthquake: new Date().toISOString(), magnitude: 3.1 },
-    { id: 'suriname', name: 'Suriname', code: 'SR', coordinates: [5.8520, -55.2038], riskLevel: 'low', lastEarthquake: new Date().toISOString(), magnitude: 2.9 },
-  ];
+  // Convertir datos de países con riesgo
+  const countries: Country[] = useMemo(() => {
+    if (!dashboardData) return [];
+    
+    const countryCoordinates = {
+      'Argentina': [-34.6118, -58.3960],
+      'Bolivia': [-16.4897, -68.1193],
+      'Brazil': [-15.7801, -47.9292],
+      'Chile': [-33.4489, -70.6693],
+      'Colombia': [4.7110, -74.0721],
+      'Ecuador': [-0.2299, -78.5249],
+      'Guyana': [6.8013, -58.1553],
+      'Paraguay': [-25.2637, -57.5759],
+      'Peru': [-12.0464, -77.0428],
+      'Suriname': [5.8520, -55.2038],
+      'Uruguay': [-34.9011, -56.1645],
+      'Venezuela': [10.4806, -66.9036]
+    };
+    
+         return dashboardData.countries.map(country => {
+       const coords = countryCoordinates[country.country_code as keyof typeof countryCoordinates] || [0, 0];
+       return {
+         id: country.country_code.toLowerCase(),
+         name: country.country_code,
+         code: country.country_code.substring(0, 2).toUpperCase(),
+         coordinates: [coords[0], coords[1]] as [number, number],
+         riskLevel: country.risk_level as 'low' | 'medium' | 'high' | 'very-high',
+         lastEarthquake: country.last_date,
+         magnitude: country.max_magnitude
+       };
+     });
+  }, [dashboardData]);
 
   // Helper to normalize names for matching
   const normalize = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
@@ -56,7 +93,7 @@ const DashboardGrid: React.FC = () => {
     type Stat = { count: number; latestMw: number | null };
     const stats: Record<string, Stat> = {};
     countries.forEach(c => { stats[normalize(c.name)] = { count: 0, latestMw: null }; });
-    filteredData.forEach(eq => {
+    mapData.forEach(eq => {
       const key = normalize(eq.location);
       const current: Stat = stats[key] ?? { count: 0, latestMw: null };
       const nextCount = current.count + 1;
@@ -64,7 +101,7 @@ const DashboardGrid: React.FC = () => {
       stats[key] = { count: nextCount, latestMw: nextMw };
     });
     return stats;
-  }, [filteredData, countries]);
+  }, [mapData, countries]);
 
   // Sort countries by current count desc to reflect context
   const sortedCountries = useMemo(() => {
@@ -75,6 +112,32 @@ const DashboardGrid: React.FC = () => {
     });
   }, [countries, countryStats]);
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+        <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+          <AlertTriangle className="h-6 w-6 text-red-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-red-800 mb-2">Error al cargar datos del dashboard</h3>
+        <p className="text-red-700 mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+        >
+          Recargar Página
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       
@@ -84,23 +147,35 @@ const DashboardGrid: React.FC = () => {
           <div className="p-2 bg-red-100 rounded-md"><AlertTriangle className="h-5 w-5 text-red-600"/></div>
           <div>
             <div className="text-sm text-gray-600">Último sismo registrado</div>
-            <div className="text-xl font-semibold text-gray-900">{lastQuake ? `${lastQuake.magnitude.toFixed(1)} Mw, ${lastQuake.location}` : '—'}</div>
-            <div className="text-xs text-gray-500">{lastQuake ? new Date(lastQuake.date).toLocaleString() : ''}</div>
+            <div className="text-xl font-semibold text-gray-900">
+              {dashboardData?.last_earthquake.magnitude ? 
+                `${dashboardData.last_earthquake.magnitude.toFixed(1)} Mw, ${dashboardData.last_earthquake.country || 'Ubicación desconocida'}` : 
+                '—'}
+            </div>
+            <div className="text-xs text-gray-500">
+              {dashboardData?.last_earthquake.date ? 
+                new Date(dashboardData.last_earthquake.date).toLocaleString() : 
+                ''}
+            </div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4">
           <div className="p-2 bg-blue-100 rounded-md"><Activity className="h-5 w-5 text-blue-600"/></div>
           <div>
             <div className="text-sm text-gray-600">Sismos detectados ({range === '24h' ? '24h' : range === '7d' ? 'última semana' : 'último mes'})</div>
-            <div className="text-2xl font-bold text-gray-900">{weekCount}</div>
-            <div className="text-xs text-gray-500">Basado en filtros seleccionados</div>
+            <div className="text-2xl font-bold text-gray-900">{dashboardData?.total_earthquakes || 0}</div>
+            <div className="text-xs text-gray-500">Basado en datos reales</div>
           </div>
         </div>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4">
           <div className="p-2 bg-yellow-100 rounded-md"><TrendingUp className="h-5 w-5 text-yellow-700"/></div>
           <div>
             <div className="text-sm text-gray-600">País con mayor riesgo</div>
-            <div className="text-xl font-semibold text-gray-900">{highestRisk}</div>
+            <div className="text-xl font-semibold text-gray-900">
+              {dashboardData?.highest_risk_country ? 
+                `${dashboardData.highest_risk_country.country_code} (${dashboardData.highest_risk_country.count} sismos)` : 
+                '—'}
+            </div>
             <div className="text-xs text-gray-500">Estimado actual</div>
           </div>
         </div>
@@ -126,7 +201,7 @@ const DashboardGrid: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             {/* Static map; enables interactions only after selecting país */}
-            <SeismicMap data={filteredData} center={mapCenter} zoom={mapZoom} disableInteractions={!interactionsEnabled} countries={countries} />
+            <SeismicMap data={mapData} center={mapCenter} zoom={mapZoom} disableInteractions={!interactionsEnabled} countries={countries} />
           </div>
           <div className="lg:col-span-1">
             <div className="border border-gray-200 rounded-lg overflow-hidden">

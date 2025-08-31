@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 const trialBalanceData = [
   { kpi: 'Gross Margin', value: '1,300,920.00', change: '+5.2%', trend: 'up' },
