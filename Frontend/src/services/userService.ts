@@ -1,6 +1,6 @@
 // userService.ts - Servicio de usuarios con persistencia en localStorage (TypeScript)
 
-export type UserRole = 'Administrador' | 'Usuario';
+export type UserRole = 'Administrador' | 'Supervisor' | 'Usuario';
 export type UserStatus = 'Activo' | 'Inactivo';
 export type Theme = 'light' | 'dark';
 
@@ -17,7 +17,7 @@ export interface User {
   updatedAt: string;
 }
 
-export const USER_ROLES: UserRole[] = ['Administrador', 'Usuario'];
+export const USER_ROLES: UserRole[] = ['Administrador', 'Supervisor', 'Usuario'];
 export const USER_STATUSES: UserStatus[] = ['Activo', 'Inactivo'];
 
 const STORAGE_KEYS = {
@@ -77,13 +77,24 @@ export function updateUser(id: number | string, payload: Partial<User>): User {
   const users = readUsers();
   const idx = users.findIndex(u => String(u.id) === String(id));
   if (idx === -1) throw new Error('Usuario no encontrado');
-  users[idx] = {
-    ...users[idx],
+  const base = users[idx] as User;
+  const updated: User = {
+    ...base,
     ...payload,
+    id: base.id,
+    name: payload.name ?? base.name,
+    email: payload.email ?? base.email,
+    role: (payload.role ?? base.role) as typeof base.role,
+    status: (payload.status ?? base.status) as typeof base.status,
+    avatar: payload.avatar === undefined ? base.avatar : payload.avatar,
+    notifications: payload.notifications !== undefined ? payload.notifications : (base.notifications ?? true),
+    theme: payload.theme !== undefined ? payload.theme : (base.theme ?? 'light'),
+    createdAt: base.createdAt,
     updatedAt: new Date().toISOString(),
   };
+  users[idx] = updated;
   writeUsers(users);
-  return users[idx];
+  return updated;
 }
 
 export function deleteUser(id: number | string): void {
@@ -106,6 +117,15 @@ export function updateCurrentUser(payload: Partial<User>): User {
   const current = getCurrentUser();
   if (!current) throw new Error('No hay usuario actual');
   return updateUser(current.id, payload);
+}
+
+// Helpers de rol
+export function isAdmin(user?: User | null): boolean {
+  return (user?.role || '').toString() === 'Administrador';
+}
+
+export function isSupervisor(user?: User | null): boolean {
+  return (user?.role || '').toString() === 'Supervisor';
 }
 
 (function bootstrap() {

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from .. import models, schemas
-from ..security import compute_face_hash_from_base64, is_same_face, create_access_token
+from ..security import compute_face_hash_from_base64, is_same_face, create_access_token, hamming_distance
 from pydantic import EmailStr  # import permitido pero no se instancia
 from typing import Optional, List
 from uuid import uuid4
@@ -110,16 +110,26 @@ def login_face(
     Si coincide con algún usuario, emite token. Evita pedir DNI/correo en login.
     """
     provided_hash = compute_face_hash_from_base64(face_image)
+    print(f"Provided face hash: {provided_hash}")
 
     # Buscar coincidencia de rostro
     user = None
+    best_match_distance = 64
+    best_match_user = None
+    
     for candidate in db.query(models.User).all():
+        distance = hamming_distance(candidate.face_hash, provided_hash)
+        print(f"Comparing with user {candidate.username}: distance={distance}")
+        if distance < best_match_distance:
+            best_match_distance = distance
+            best_match_user = candidate
         if is_same_face(candidate.face_hash, provided_hash):
             user = candidate
             break
 
     if not user:
-        raise HTTPException(status_code=401, detail="Rostro no coincide con ningún usuario registrado")
+        print(f"No exact match found. Best match: {best_match_user.username if best_match_user else 'None'} with distance {best_match_distance}")
+        raise HTTPException(status_code=401, detail=f"Rostro no coincide con ningún usuario registrado. Mejor coincidencia: distancia {best_match_distance}")
 
     token = create_access_token(subject=user.email)
     return {"access_token": token, "token_type": "bearer"}
