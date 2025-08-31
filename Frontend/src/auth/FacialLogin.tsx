@@ -89,10 +89,12 @@ const FacialLogin: React.FC = () => {
 
     async function init() {
       try {
-        const [{ FaceMesh }, { Camera }] = await Promise.all([
+        const [fm, { Camera }] = await Promise.all([
           import('@mediapipe/face_mesh'),
           import('@mediapipe/camera_utils'),
         ]);
+
+        const { FaceMesh, FACEMESH_TESSELATION } = fm as any;
 
         const videoEl = (webcamRef.current as any)?.video as HTMLVideoElement | undefined;
         const canvasEl = canvasRef.current;
@@ -154,9 +156,7 @@ const FacialLogin: React.FC = () => {
             } catch {}
             farRef.current = isFar;
 
-            // Dibujo de conectores y puntos
-            // drawConnectors: necesitamos las mallas FACEMESH_TESSELATION / etc.
-            // Para evitar import adicional de constantes, dibujamos solo puntos.
+            // Dibujo de malla (tesselation) y puntos
             // Color con prioridad: rojo (no_match) > rosa (lejos) > fases (login) > verde
             let color = '#22c55e'; // verde por defecto
             if (phaseRef.current === 'no_match') {
@@ -167,9 +167,30 @@ const FacialLogin: React.FC = () => {
               if (phaseRef.current === 'detecting') color = '#3B82F6'; // azul
               else if (phaseRef.current === 'analyzing') color = '#F59E0B'; // amarillo
             }
-            // Dibujo manual de puntos (más control de color/visibilidad que drawLandmarks)
+            // Malla - líneas
             const w = canvasEl.width;
             const h = canvasEl.height;
+            if (Array.isArray(FACEMESH_TESSELATION)) {
+              ctx.save();
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 1.2;
+              ctx.beginPath();
+              const edges = FACEMESH_TESSELATION as Array<[number, number]>;
+              for (let k = 0; k < edges.length; k++) {
+                const e = edges[k] as [number, number];
+                const i = e[0];
+                const j = e[1];
+                const p = landmarks[i];
+                const q = landmarks[j];
+                if (!p || !q) continue;
+                ctx.moveTo(p.x * w, p.y * h);
+                ctx.lineTo(q.x * w, q.y * h);
+              }
+              ctx.stroke();
+              ctx.restore();
+            }
+
+            // Puntos (landmarks)
             ctx.save();
             ctx.fillStyle = color;
             const r = 3.0;
@@ -297,6 +318,7 @@ const FacialLogin: React.FC = () => {
       // Reintentos automáticos: hasta 3 capturas secuenciales
       const tryOnce = async () => {
         const face_image = captureDataURL();
+        console.log('Attempting facial login with image length:', face_image.length);
         const { access_token } = await loginFace({ face_image });
         return access_token as string;
       };
@@ -308,11 +330,15 @@ const FacialLogin: React.FC = () => {
           break;
         } catch (err) {
           lastErr = err;
+          console.error(`Login attempt ${i + 1} failed:`, err);
           // pequeña espera entre reintentos
           await new Promise((r) => setTimeout(r, 200));
         }
       }
-      if (!access_token) throw lastErr || new Error('No se pudo autenticar');
+      if (!access_token) {
+        console.error('All login attempts failed:', lastErr);
+        throw lastErr || new Error('No se pudo autenticar');
+      }
       // Obtener username y anunciar TTS
       try {
         const meData = await me(access_token);
@@ -354,6 +380,23 @@ const FacialLogin: React.FC = () => {
   return (
     <div className="fl-container">
       <div className="fl-card">
+        {/* Decoración: íconos flotantes (sismos / Sudamérica) */}
+        <div className="fl-decor" aria-hidden>
+          {/* Onda sísmica */}
+          <svg className="fl-icon fl-icon-wave" width="120" height="24" viewBox="0 0 60 12" fill="none">
+            <polyline points="0,6 5,2 10,9 15,4 20,10 25,6 30,11 35,3 40,9 45,5 50,10 55,6 60,8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {/* Pin/marker */}
+          <svg className="fl-icon fl-icon-marker" width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 22s7-7.2 7-12a7 7 0 10-14 0c0 4.8 7 12 7 12z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            <circle cx="12" cy="10" r="2.5" fill="currentColor" />
+          </svg>
+          {/* Brújula simple */}
+          <svg className="fl-icon fl-icon-compass" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M14.8 9.2L11 11l-1.8 3.8L13 13l1.8-3.8z" fill="currentColor" />
+          </svg>
+        </div>
         <h1 className="fl-title">Login Facial</h1>
         <div className="fl-content">
           <div className="fl-camera">
@@ -391,6 +434,18 @@ const FacialLogin: React.FC = () => {
           <div className="fl-form">
             {/* Componente de login: no se solicita usuario aquí */}
 
+            {/* Instrucciones de uso */}
+            <div className="fl-instructions">
+              <div className="fl-instructions-title">¿Cómo iniciar sesión con tu rostro?</div>
+              <ol>
+                <li>Asegúrate de tener buena iluminación frontal (evita contraluz fuerte).</li>
+                <li>Coloca tu rostro dentro del recuadro y mira de frente a la cámara.</li>
+                <li>Quédate quieto hasta ver el estado <b>“Rostro listo”</b> y el progreso llegar a <b>100%</b>.</li>
+                <li>Si aparece “muy lejos”, acércate un poco; si no detecta, reencuadra tu rostro.</li>
+                <li>Cuando esté listo, pulsa <b>“Iniciar sesión (facial)”</b> y espera la verificación.</li>
+              </ol>
+            </div>
+
             <div className="fl-actions">
               <>
                 <button
@@ -398,14 +453,7 @@ const FacialLogin: React.FC = () => {
                   disabled={!canSubmit || loading || !faceDetected}
                   onClick={handleLogin}
                 >
-                  {loading ? 'Procesando...' : 'Iniciar sesión (facial)'}
-                </button>
-                <button
-                  className="fl-btn"
-                  disabled={loading}
-                  onClick={() => { window.location.href='/?mode=register'; }}
-                >
-                  {loading ? 'Procesando...' : 'Registrar rostro'}
+                  <span>{loading ? 'Procesando...' : 'Iniciar sesión (facial)'}</span>
                 </button>
               </>
             </div>

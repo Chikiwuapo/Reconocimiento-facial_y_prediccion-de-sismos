@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dashboard } from './components/Dashboard';
 import ErrorBoundary from './components/Dashboard/Layout/ErrorBoundary';
 import './styles/index.css';
 import { ThemeProvider } from './context/ThemeContext';
 import FacialLogin from './auth/FacialLogin';
 import { me } from './services/auth';
-import FacialRegister from './auth/FacialRegister';
 
 const App: React.FC = () => {
   const [authState, setAuthState] = useState<'checking' | 'authed' | 'guest'>('checking');
@@ -33,11 +32,7 @@ const App: React.FC = () => {
         ) : authState === 'authed' ? (
           <Dashboard />
         ) : (
-          (() => {
-            const params = new URLSearchParams(window.location.search);
-            const mode = (params.get('mode') || '').toLowerCase();
-            return mode === 'register' ? <FacialRegister /> : <FacialLogin />;
-          })()
+          <FacialLogin />
         )}
       </ErrorBoundary>
     </ThemeProvider>
