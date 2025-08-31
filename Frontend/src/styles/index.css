@@ -1,0 +1,118 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme (default) */
+    --color-bg: #ffffff;
+    --color-bg-hover: #f9fafb;
+    --color-text: #111827;
+    --color-text-secondary: #6b7280;
+    --color-border: #e5e7eb;
+    --color-primary: #2563eb;
+    --color-primary-dark: #1d4ed8;
+    --color-error: #dc2626;
+    --color-success: #059669;
+    --color-warning: #d97706;
+  }
+
+  [data-theme='dark'] {
+    --color-bg: #111827;
+    --color-bg-hover: #1f2937;
+    --color-text: #f9fafb;
+    --color-text-secondary: #9ca3af;
+    --color-border: #374151;
+    --color-primary: #3b82f6;
+    --color-primary-dark: #2563eb;
+    --color-error: #ef4444;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+  }
+  
+  * {
+    @apply border-gray-200;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+    @apply transition-colors duration-300;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+  }
+
+  /* Dark theme base overrides */
+  [data-theme='dark'] body {
+    @apply bg-gray-950 text-gray-100;
+  }
+
+  [data-theme='dark'] h1,
+  [data-theme='dark'] h2,
+  [data-theme='dark'] h3,
+  [data-theme='dark'] h4,
+  [data-theme='dark'] h5,
+  [data-theme='dark'] h6 {
+    @apply text-gray-100;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply transition-colors duration-300;
+  }
+  
+  .sidebar-item {
+    @apply flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 hover:text-gray-900 transition-colors;
+  }
+  
+  .sidebar-item.active {
+    @apply bg-blue-50 text-blue-700;
+  }
+  
+  .btn-primary {
+    @apply bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors;
+  }
+
+  /* Dark theme component overrides */
+  [data-theme='dark'] .card {
+    @apply bg-gray-900 border-gray-800 text-gray-100;
+  }
+
+  [data-theme='dark'] .btn-secondary {
+    @apply bg-gray-800 text-gray-200 hover:bg-gray-700 focus:ring-gray-600;
+  }
+
+  [data-theme='dark'] .btn-primary {
+    @apply focus:ring-offset-gray-900;
+  }
+
+  /* Generic border/text helpers in dark */
+  [data-theme='dark'] * {
+    @apply border-gray-800;
+  }
+
+  /* Utility overrides for common Tailwind classes in dark mode */
+  [data-theme='dark'] .bg-white { @apply bg-gray-900; }
+  [data-theme='dark'] .bg-gray-50 { @apply bg-gray-950; }
+  [data-theme='dark'] .bg-gray-100 { @apply bg-gray-800; }
+  [data-theme='dark'] .bg-gray-200 { @apply bg-gray-700; }
+
+  [data-theme='dark'] .text-gray-900 { @apply text-gray-100; }
+  [data-theme='dark'] .text-gray-800 { @apply text-gray-100; }
+  [data-theme='dark'] .text-gray-700 { @apply text-gray-200; }
+  [data-theme='dark'] .text-gray-600 { @apply text-gray-300; }
+  [data-theme='dark'] .text-gray-500 { @apply text-gray-400; }
+
+  [data-theme='dark'] .border-gray-200 { @apply border-gray-800; }
+  [data-theme='dark'] .border-gray-300 { @apply border-gray-700; }
+
+  /* Hover helpers */
+  [data-theme='dark'] .hover\:bg-gray-100:hover { @apply bg-gray-800; }
+  [data-theme='dark'] .hover\:bg-gray-50:hover { @apply bg-gray-900; }
+}
