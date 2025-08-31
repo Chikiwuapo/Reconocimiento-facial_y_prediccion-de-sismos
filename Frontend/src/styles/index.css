@@ -4,6 +4,33 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light theme (default) */
+    --color-bg: #ffffff;
+    --color-bg-hover: #f9fafb;
+    --color-text: #111827;
+    --color-text-secondary: #6b7280;
+    --color-border: #e5e7eb;
+    --color-primary: #2563eb;
+    --color-primary-dark: #1d4ed8;
+    --color-error: #dc2626;
+    --color-success: #059669;
+    --color-warning: #d97706;
+  }
+
+  [data-theme='dark'] {
+    --color-bg: #111827;
+    --color-bg-hover: #1f2937;
+    --color-text: #f9fafb;
+    --color-text-secondary: #9ca3af;
+    --color-border: #374151;
+    --color-primary: #3b82f6;
+    --color-primary-dark: #2563eb;
+    --color-error: #ef4444;
+    --color-success: #10b981;
+    --color-warning: #f59e0b;
+  }
+  
   * {
     @apply border-gray-200;
   }
@@ -11,6 +38,8 @@
   body {
     @apply bg-gray-50 text-gray-900 font-sans;
     @apply transition-colors duration-300;
+    background-color: var(--color-bg);
+    color: var(--color-text);
   }
 
   /* Dark theme base overrides */

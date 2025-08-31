@@ -1,126 +1,77 @@
 import React from 'react';
+import AppModal from './AppModal';
 
 interface UserInfo {
   name: string;
   email: string;
+  dni?: string;
   role?: string;
+  avatar?: string;
 }
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   user?: UserInfo;
+  onLogout?: () => void;
 }
 
-const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user }) => {
-  const [visible, setVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    if (isOpen) {
-      const id = requestAnimationFrame(() => setVisible(true));
-      return () => cancelAnimationFrame(id);
-    } else {
-      setVisible(false);
-    }
-    return undefined;
-  }, [isOpen]);
-
-  if (!isOpen) return null;
-
-  const info = user || { name: 'Usuario', email: 'usuario@correo.com', role: 'Analista' };
+const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user}) => {
+  const info = user || { 
+    name: 'Admin', 
+    email: 'admin@correo.com',
+    dni: '12345678',
+    role: 'Administrador',
+    avatar: 'https://ui-avatars.com/api/?name=Usuario&background=2563eb&color=fff'
+  };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center">
-      {/* Backdrop */}
-      <div
-        className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
-        onClick={onClose}
-      />
-
-      {/* Panel */}
-      <div
-        className={`relative w-full max-w-4xl mx-4 md:mx-8 rounded-xl shadow-xl border overflow-hidden
-        ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}
-        transition-all duration-300 ease-out
-        bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-800`}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="profile-modal-title"
-      >
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-          <h3 id="profile-modal-title" className="text-lg font-semibold">Perfil de usuario</h3>
-          <button
-            onClick={onClose}
-            className="px-2 py-1 rounded-md text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-            aria-label="Cerrar modal"
-          >
-            ✕
-          </button>
+    <AppModal 
+      isOpen={isOpen} 
+      onClose={onClose} 
+      title="Perfil de Usuario"
+      size="md"
+    >
+      <div className="flex flex-col items-center py-4 px-6">
+        <div className="relative mb-4">
+          <img 
+            src={info.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(info.name)}&background=2563eb&color=fff`} 
+            alt={info.name}
+            className="w-24 h-24 rounded-full border-4 border-blue-100 dark:border-blue-900"
+          />
+          <div className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
         </div>
-
-        {/* Body */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left column: avatar + basic info */}
-          <div className="md:col-span-1">
-            <div className="h-24 w-24 rounded-full bg-gradient-to-br from-red-500 to-orange-400 text-white flex items-center justify-center text-3xl font-bold select-none">
-              {info.name?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="mt-4 space-y-1">
-              <p className="text-base font-medium">{info.name}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">{info.email}</p>
-              {info.role && (
-                <span className="inline-flex items-center mt-2 px-2 py-0.5 rounded-md text-xs bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                  {info.role}
-                </span>
-              )}
-            </div>
+        
+        <h3 className="text-xl font-semibold text-center mb-1">{info.name}</h3>
+        <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mb-4">{info.role}</p>
+        
+        <div className="w-full space-y-3 mt-4">
+          <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <span className="text-sm text-gray-700 dark:text-gray-200">{info.email}</span>
           </div>
 
-          {/* Right column: actions and details */}
-          <div className="md:col-span-2 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button className="w-full px-4 py-2 rounded-md text-sm font-medium bg-gray-900 text-white hover:bg-gray-800 transition-colors dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-200">
-                Modificar información
-              </button>
-              <button className="w-full px-4 py-2 rounded-md text-sm font-medium bg-white border border-gray-300 hover:bg-gray-50 transition-colors dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800">
-                Cambiar contraseña
-              </button>
-            </div>
-
-            <div className="card">
-              <h4 className="text-sm font-semibold mb-3">Información básica</h4>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                <div>
-                  <dt className="text-gray-500 dark:text-gray-400">Nombre</dt>
-                  <dd>{info.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-gray-500 dark:text-gray-400">Correo</dt>
-                  <dd>{info.email}</dd>
-                </div>
-                {info.role && (
-                  <div>
-                    <dt className="text-gray-500 dark:text-gray-400">Rol</dt>
-                    <dd>{info.role}</dd>
-                  </div>
-                )}
-              </dl>
-            </div>
+          <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+            <svg className="w-5 h-5 text-gray-500 dark:text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="text-sm text-gray-700 dark:text-gray-200">{info.dni || 'No especificado'}</span>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-md text-sm border border-gray-300 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
+          <button 
+            onClick={() => {}}
+            className="w-full mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
           >
-            Cerrar
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            Registrar Usuario
           </button>
         </div>
       </div>
-    </div>
+    </AppModal>
   );
 };
 

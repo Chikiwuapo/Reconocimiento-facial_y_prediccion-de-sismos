@@ -36,6 +36,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     magnitude: country.magnitude,
   }));
 
+  // Mapa de banderas por país (nombre) para mostrar emojis en la lista
+  const flagByCountryName: Record<string, string> = {
+    'Argentina': '🇦🇷',
+    'Bolivia': '🇧🇴',
+    'Brazil': '🇧🇷',
+    'Brasil': '🇧🇷',
+    'Chile': '🇨🇱',
+    'Colombia': '🇨🇴',
+    'Ecuador': '🇪🇨',
+    'Guyana': '🇬🇾',
+    'Guayana': '🇬🇾',
+    'Paraguay': '🇵🇾',
+    'Peru': '🇵🇪',
+    'Perú': '🇵🇪',
+    'Suriname': '🇸🇷',
+    'Uruguay': '🇺🇾',
+    'Venezuela': '🇻🇪',
+  };
+
+  const getFlag = (name: string): string => {
+    return flagByCountryName[name] || '🌎';
+  };
+
 
 
   return (
@@ -183,6 +206,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
                 : "text-gray-400 hover:bg-gray-800 hover:text-white"
             }`}
                       >
+                        <span className="mr-2 text-base leading-none">{getFlag(country.name)}</span>
                         <span>{country.name}</span>
                       </button>
                     ))

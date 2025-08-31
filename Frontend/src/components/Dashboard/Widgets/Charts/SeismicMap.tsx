@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMap, ZoomControl } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMap, ZoomControl, Circle } from 'react-leaflet';
 import { Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Country } from '../../../../types/dashboard';
@@ -48,6 +48,7 @@ interface SeismicMapProps {
   zoom?: number;
   disableInteractions?: boolean;
   countries?: Country[]; // reference markers
+  shadeEnabled?: boolean;
 }
 
 const MapController: React.FC<{ center: [number, number]; zoom: number }> = ({ center, zoom }) => {
@@ -83,21 +84,44 @@ const InteractionController: React.FC<{ disabled: boolean }> = ({ disabled }) =>
 };
 
 const riskToColor = (risk: Country['riskLevel']) => {
+  console.log(`[DEBUG] riskToColor(${risk})`);
   switch (risk) {
     case 'very-high':
-      return '#ef4444';
+      return '#dc2626'; // Rojo más oscuro para mejor contraste
     case 'high':
-      return '#f97316';
+      return '#ea580c'; // Naranja más oscuro
     case 'medium':
-      return '#f59e0b';
+      return '#d97706'; // Amarillo oscuro
     default:
-      return '#22c55e';
+      return '#16a34a'; // Verde más oscuro
   }
 };
 
 const normalize = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+// Alias para nombres de países reportados en distintas lenguas
+const aliasCanonical: Record<string, string> = {
+  'brasil': 'brazil',
+  'brazil': 'brazil',
+  'peru': 'peru',
+  'peru\u0301': 'peru', // seguridad extra si viniera con combinados
+  'guyana': 'guyana',
+  'guayana': 'guyana',
+  'colombia': 'colombia',
+  'argentina': 'argentina',
+  'bolivia': 'bolivia',
+  'chile': 'chile',
+  'ecuador': 'ecuador',
+  'paraguay': 'paraguay',
+  'suriname': 'suriname',
+  'uruguay': 'uruguay',
+  'venezuela': 'venezuela',
+};
+const normKey = (s: string) => {
+  const n = normalize(s);
+  return aliasCanonical[n] || n;
+};
 
-const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], zoom = 4, disableInteractions = false, countries = [] }) => {
+const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], zoom = 3, disableInteractions = false, countries = [], shadeEnabled = true }) => {
   const { setSelectedCountry: setCtxCountry, setCurrentView } = useDashboard();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -106,7 +130,7 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
   const latestByCountry = useMemo(() => {
     const map = new Map<string, EarthquakePoint>();
     data.forEach(eq => {
-      const key = normalize(eq.location);
+      const key = normKey(eq.location);
       const prev = map.get(key);
       if (!prev || new Date(eq.date).getTime() > new Date(prev.date).getTime()) {
         map.set(key, eq);
@@ -117,7 +141,9 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
 
   const selectedLatest = useMemo(() => {
     if (!selectedCountry) return null;
-    return latestByCountry.get(normalize(selectedCountry.name)) ?? null;
+    // Intentar por nombre canónico y alias
+    const k = normKey(selectedCountry.name);
+    return latestByCountry.get(k) ?? null;
   }, [selectedCountry, latestByCountry]);
 
   const openCountryModal = (country: Country | null) => {
@@ -140,6 +166,16 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
           Mapa estático · selecciona un país para explorar
         </div>
       )}
+      {/* Leyenda de colores */}
+      <div className="absolute z-20 bottom-3 left-3 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-md shadow px-3 py-2 text-xs text-gray-700">
+        <div className="font-medium text-gray-900 mb-1">Leyenda</div>
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#22c55e'}}></span><span>Leve (&lt; 4.0)</span></div>
+          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#f59e0b'}}></span><span>Moderado (4.0–4.9)</span></div>
+          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#f97316'}}></span><span>Fuerte (5.0–5.9)</span></div>
+          <div className="flex items-center space-x-1"><span className="inline-block w-3 h-3 rounded-full" style={{background:'#ef4444'}}></span><span>Intenso (6.0+)</span></div>
+        </div>
+      </div>
       <MapContainer
         center={center}
         zoom={zoom}
@@ -148,6 +184,8 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
         minZoom={3}
         maxZoom={8}
         zoomControl={false}
+        maxBounds={[[13, -95], [-56, -30]] as any}
+        maxBoundsViscosity={0.9}
       >
         <MapController center={center} zoom={zoom} />
         <InteractionController disabled={disableInteractions} />
@@ -156,6 +194,41 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {/* Sombreado de áreas de interés: círculos por nivel de riesgo */}
+        {shadeEnabled && countries
+          .filter(c => c.riskLevel === 'medium' || c.riskLevel === 'high' || c.riskLevel === 'very-high')
+          .map(c => {
+            // Depuración para Brasil
+            if (c.code === 'BR') {
+              console.log(`[DEBUG] Mostrando sombra para Brasil:`, {
+                code: c.code,
+                name: c.name,
+                riskLevel: c.riskLevel,
+                color: riskToColor(c.riskLevel),
+                coordinates: c.coordinates,
+                radius: c.riskLevel === 'very-high' ? 600000 : c.riskLevel === 'high' ? 400000 : 250000
+              });
+            }
+            
+            return (
+              <Circle
+                key={`shade-${c.code}`}
+                center={[c.coordinates[0], c.coordinates[1]]}
+                radius={c.riskLevel === 'very-high' ? 800000 : c.riskLevel === 'high' ? 500000 : 300000}
+                pathOptions={{ 
+                  color: riskToColor(c.riskLevel), 
+                  fillColor: riskToColor(c.riskLevel), 
+                  fillOpacity: c.riskLevel === 'very-high' ? 0.25 : c.riskLevel === 'high' ? 0.2 : 0.15,
+                  opacity: 0.6,
+                  weight: 2,
+                  dashArray: c.riskLevel === 'very-high' ? '10, 5' : '5, 5'
+                }}
+                eventHandlers={{
+                  click: () => openCountryModal(c),
+                }}
+              />
+            );
+          })}
         {/* Country reference markers with risk color */}
         {countries.map((c) => (
           <Marker
@@ -165,11 +238,33 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
             eventHandlers={{
               click: () => openCountryModal(c),
             }}
+            zIndexOffset={c.riskLevel === 'very-high' ? 1000 : c.riskLevel === 'high' ? 800 : 600}
           >
-            <Tooltip direction="top" offset={[0, -10]} opacity={1} permanent={false} className="!bg-white !text-gray-800 !shadow !rounded !px-2 !py-1">
-              <div className="text-xs">
-                <div className="font-semibold">{c.name}</div>
-                <div className="text-gray-600">Riesgo: {c.riskLevel.toUpperCase()}</div>
+            <Tooltip 
+              direction="top" 
+              offset={[0, -10]} 
+              opacity={1} 
+              permanent={false} 
+              className="!bg-white !text-gray-800 !shadow-lg !rounded !px-2 !py-1 !border !border-gray-200"
+            >
+              <div className="text-xs min-w-[120px]">
+                <div className="font-bold text-sm mb-1">{c.name}</div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600">Riesgo:</span>
+                  <span className={`font-semibold ${
+                    c.riskLevel === 'very-high' ? 'text-red-600' : 
+                    c.riskLevel === 'high' ? 'text-orange-600' : 
+                    c.riskLevel === 'medium' ? 'text-yellow-600' : 'text-green-600'
+                  }`}>
+                    {c.riskLevel.toUpperCase()}
+                  </span>
+                </div>
+                {c.magnitude > 0 && (
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-gray-600">Magnitud:</span>
+                    <span className="font-semibold">{c.magnitude.toFixed(1)}</span>
+                  </div>
+                )}
               </div>
             </Tooltip>
           </Marker>
@@ -181,7 +276,8 @@ const SeismicMap: React.FC<SeismicMapProps> = ({ data, center = [-15.78, -60], z
             icon={createCircleIcon(getMarkerColor(eq.magnitude))}
             eventHandlers={{
               click: () => {
-                const found = countries.find(co => normalize(co.name) === normalize(eq.location)) || null;
+                const locKey = normKey(eq.location);
+                const found = countries.find(co => normKey(co.name) === locKey) || null;
                 openCountryModal(found);
               }
             }}
