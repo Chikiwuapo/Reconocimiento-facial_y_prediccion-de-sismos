@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useTheme } from '../../context/ThemeContext';
+import styles from './AppModal.module.css';
 
 interface ModalProps {
   isOpen: boolean;
@@ -7,6 +9,7 @@ interface ModalProps {
   children?: React.ReactNode;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const AppModal: React.FC<ModalProps> = ({
@@ -16,24 +19,82 @@ const AppModal: React.FC<ModalProps> = ({
   children,
   primaryActionLabel,
   onPrimaryAction,
+  size = 'md',
 }) => {
+  const { theme } = useTheme();
+
+  // Bloquear el scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
+  // Tamaños del modal
+  const sizeClasses = {
+    sm: 'max-w-md',
+    md: 'max-w-xl',
+    lg: 'max-w-4xl',
+  };
+
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full max-w-md mx-4 rounded-lg shadow-lg bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100">
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-base font-semibold">{title}</h3>
-          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300" aria-label="Cerrar modal">✕</button>
+    <div className={styles.overlay}>
+      <div 
+        className={styles.backdrop} 
+        onClick={onClose}
+        role="presentation"
+        data-theme={theme}
+      />
+      <div 
+        className={`${styles.modal} ${sizeClasses[size]}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+        data-theme={theme}
+      >
+        {title && (
+          <div className={styles.header}>
+            <h3 id="modal-title" className={styles.title}>
+              {title}
+            </h3>
+            <button 
+              type="button" 
+              className={styles.closeButton}
+              onClick={onClose} 
+              aria-label="Cerrar modal"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        
+        <div className={styles.content}>
+          {children}
         </div>
-        <div className="px-4 py-4">{children}</div>
-        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2">
-          <button onClick={onClose} className="px-3 py-1.5 rounded-md text-sm border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+        
+        <div className={styles.footer}>
+          <button 
+            type="button" 
+            className={`${styles.button} ${styles.buttonSecondary}`}
+            onClick={onClose}
+          >
             Cerrar
           </button>
+          
           {primaryActionLabel && onPrimaryAction && (
-            <button onClick={onPrimaryAction} className="px-3 py-1.5 rounded-md text-sm bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900">
+            <button 
+              type="button"
+              className={`${styles.button} ${styles.buttonPrimary}`}
+              onClick={onPrimaryAction}
+            >
               {primaryActionLabel}
             </button>
           )}

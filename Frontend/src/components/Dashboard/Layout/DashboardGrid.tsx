@@ -10,8 +10,9 @@ const DashboardGrid: React.FC = () => {
   // Countries list toggle and map view state
   const [showCountries, setShowCountries] = useState<boolean>(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([-15.78, -60]);
-  const [mapZoom, setMapZoom] = useState<number>(4);
+  const [mapZoom, setMapZoom] = useState<number>(3); // vista amplia de Sudamérica
   const [interactionsEnabled, setInteractionsEnabled] = useState<boolean>(false);
+  const [shadeEnabled, setShadeEnabled] = useState<boolean>(true);
   
   // Estado para datos del dashboard
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -56,33 +57,200 @@ const DashboardGrid: React.FC = () => {
   const countries: Country[] = useMemo(() => {
     if (!dashboardData) return [];
     
-    const countryCoordinates = {
-      'Argentina': [-34.6118, -58.3960],
-      'Bolivia': [-16.4897, -68.1193],
-      'Brazil': [-15.7801, -47.9292],
-      'Chile': [-33.4489, -70.6693],
-      'Colombia': [4.7110, -74.0721],
-      'Ecuador': [-0.2299, -78.5249],
-      'Guyana': [6.8013, -58.1553],
-      'Paraguay': [-25.2637, -57.5759],
-      'Peru': [-12.0464, -77.0428],
-      'Suriname': [5.8520, -55.2038],
-      'Uruguay': [-34.9011, -56.1645],
-      'Venezuela': [10.4806, -66.9036]
-    };
+    // Depuración: Mostrar datos de Brasil
+    const brazilData = dashboardData.countries.find(c => 
+      ['BR', 'BRA', 'BRAZIL', 'BRASIL'].includes(c.country_code?.toUpperCase())
+    );
+    console.log('Datos de Brasil desde la API:', JSON.stringify(brazilData, null, 2));
+    console.log('Todos los países:', JSON.stringify(dashboardData.countries.map(c => ({
+      code: c.country_code,
+      risk: c.risk_level,
+      magnitude: c.max_magnitude
+    })), null, 2));
     
-         return dashboardData.countries.map(country => {
-       const coords = countryCoordinates[country.country_code as keyof typeof countryCoordinates] || [0, 0];
-       return {
-         id: country.country_code.toLowerCase(),
-         name: country.country_code,
-         code: country.country_code.substring(0, 2).toUpperCase(),
-         coordinates: [coords[0], coords[1]] as [number, number],
-         riskLevel: country.risk_level as 'low' | 'medium' | 'high' | 'very-high',
-         lastEarthquake: country.last_date,
-         magnitude: country.max_magnitude
-       };
-     });
+    // Helper para normalizar
+    const stripDiacritics = (s: string) => s.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+    const KEY = (s: string) => stripDiacritics(s).trim().toUpperCase();
+
+    // Catálogo canónico: nombre para mostrar, código ISO2 y coordenadas (aprox capital/centro)
+    const META = {
+      // Argentina
+      'AR': { name: 'Argentina', code: 'AR', coordinates: [-34.6118, -58.3960] as [number, number] },
+      'ARG': { name: 'Argentina', code: 'AR', coordinates: [-34.6118, -58.3960] as [number, number] },
+      'ARGENTINA': { name: 'Argentina', code: 'AR', coordinates: [-34.6118, -58.3960] as [number, number] },
+      // Bolivia
+      'BO': { name: 'Bolivia', code: 'BO', coordinates: [-16.4897, -68.1193] as [number, number] },
+      'BOL': { name: 'Bolivia', code: 'BO', coordinates: [-16.4897, -68.1193] as [number, number] },
+      'BOLIVIA': { name: 'Bolivia', code: 'BO', coordinates: [-16.4897, -68.1193] as [number, number] },
+      // Brazil
+      'BR': { name: 'Brazil', code: 'BR', coordinates: [-15.7801, -47.9292] as [number, number] },
+      'BRA': { name: 'Brazil', code: 'BR', coordinates: [-15.7801, -47.9292] as [number, number] },
+      'BRAZIL': { name: 'Brazil', code: 'BR', coordinates: [-15.7801, -47.9292] as [number, number] },
+      'BRASIL': { name: 'Brazil', code: 'BR', coordinates: [-15.7801, -47.9292] as [number, number] },
+      // Chile
+      'CL': { name: 'Chile', code: 'CL', coordinates: [-33.4489, -70.6693] as [number, number] },
+      'CHL': { name: 'Chile', code: 'CL', coordinates: [-33.4489, -70.6693] as [number, number] },
+      'CHILE': { name: 'Chile', code: 'CL', coordinates: [-33.4489, -70.6693] as [number, number] },
+      // Colombia
+      'CO': { name: 'Colombia', code: 'CO', coordinates: [4.7110, -74.0721] as [number, number] },
+      'COL': { name: 'Colombia', code: 'CO', coordinates: [4.7110, -74.0721] as [number, number] },
+      'COLOMBIA': { name: 'Colombia', code: 'CO', coordinates: [4.7110, -74.0721] as [number, number] },
+      // Ecuador
+      'EC': { name: 'Ecuador', code: 'EC', coordinates: [-0.2299, -78.5249] as [number, number] },
+      'ECU': { name: 'Ecuador', code: 'EC', coordinates: [-0.2299, -78.5249] as [number, number] },
+      'ECUADOR': { name: 'Ecuador', code: 'EC', coordinates: [-0.2299, -78.5249] as [number, number] },
+      // Guyana
+      'GY': { name: 'Guyana', code: 'GY', coordinates: [6.8013, -58.1553] as [number, number] },
+      'GUY': { name: 'Guyana', code: 'GY', coordinates: [6.8013, -58.1553] as [number, number] },
+      'GUYANA': { name: 'Guyana', code: 'GY', coordinates: [6.8013, -58.1553] as [number, number] },
+      'GUAYANA': { name: 'Guyana', code: 'GY', coordinates: [6.8013, -58.1553] as [number, number] },
+      // Paraguay
+      'PY': { name: 'Paraguay', code: 'PY', coordinates: [-25.2637, -57.5759] as [number, number] },
+      'PRY': { name: 'Paraguay', code: 'PY', coordinates: [-25.2637, -57.5759] as [number, number] },
+      'PARAGUAY': { name: 'Paraguay', code: 'PY', coordinates: [-25.2637, -57.5759] as [number, number] },
+      // Peru
+      'PE': { name: 'Peru', code: 'PE', coordinates: [-12.0464, -77.0428] as [number, number] },
+      'PER': { name: 'Peru', code: 'PE', coordinates: [-12.0464, -77.0428] as [number, number] },
+      'PERU': { name: 'Peru', code: 'PE', coordinates: [-12.0464, -77.0428] as [number, number] },
+      'PERÚ': { name: 'Peru', code: 'PE', coordinates: [-12.0464, -77.0428] as [number, number] },
+      // Suriname
+      'SR': { name: 'Suriname', code: 'SR', coordinates: [5.8520, -55.2038] as [number, number] },
+      'SUR': { name: 'Suriname', code: 'SR', coordinates: [5.8520, -55.2038] as [number, number] },
+      'SURINAME': { name: 'Suriname', code: 'SR', coordinates: [5.8520, -55.2038] as [number, number] },
+      'SURINAM': { name: 'Suriname', code: 'SR', coordinates: [5.8520, -55.2038] as [number, number] },
+      // Uruguay
+      'UY': { name: 'Uruguay', code: 'UY', coordinates: [-34.9011, -56.1645] as [number, number] },
+      'URY': { name: 'Uruguay', code: 'UY', coordinates: [-34.9011, -56.1645] as [number, number] },
+      'URUGUAY': { name: 'Uruguay', code: 'UY', coordinates: [-34.9011, -56.1645] as [number, number] },
+      // Venezuela
+      'VE': { name: 'Venezuela', code: 'VE', coordinates: [10.4806, -66.9036] as [number, number] },
+      'VEN': { name: 'Venezuela', code: 'VE', coordinates: [10.4806, -66.9036] as [number, number] },
+      'VENEZUELA': { name: 'Venezuela', code: 'VE', coordinates: [10.4806, -66.9036] as [number, number] },
+    } as const;
+
+    const normRisk = (v: string): 'low' | 'medium' | 'high' | 'very-high' => {
+      // Forzar el tipo a string y manejar valores nulos/undefined
+      const s = (v || '').toString().trim().toLowerCase();
+      console.log(`[DEBUG] Normalizando riesgo: '${v}' -> '${s}'`);
+      
+      // Primero verificar si el valor ya está en el formato correcto
+      if (['very-high', 'high', 'medium', 'low'].includes(s)) {
+        console.log(`[DEBUG] Riesgo ya en formato correcto: '${s}'`);
+        return s as any;
+      }
+      
+      // Mapear variantes comunes
+      if (s === 'very_high' || s === 'muy-alto' || s === 'muy alto' || s === 'muy alto riesgo' || s === 'muy_alto') {
+        console.log(`[DEBUG] Riesgo detectado como 'very-high'`);
+        return 'very-high';
+      }
+      if (s === 'alto' || s === 'alto riesgo' || s === 'alto_riesgo' || s === 'high risk') {
+        console.log(`[DEBUG] Riesgo detectado como 'high'`);
+        return 'high';
+      }
+      if (s === 'moderate' || s === 'medio' || s === 'moderado' || s === 'medium risk' || s === 'medium_risk') {
+        console.log(`[DEBUG] Riesgo detectado como 'medium'`);
+        return 'medium';
+      }
+      
+      // Si no coincide con ningún patrón conocido, intentar deducir del valor numérico si es un número
+      if (/^\d+$/.test(s)) {
+        const num = parseInt(s, 10);
+        if (num >= 8) return 'very-high';
+        if (num >= 6) return 'high';
+        if (num >= 4) return 'medium';
+      }
+      
+      console.log(`[WARN] Riesgo no reconocido '${s}', usando 'low' por defecto`);
+      return 'low';
+    };
+
+    console.log('=== INICIO DE PROCESAMIENTO DE PAÍSES ===');
+    console.log('Países recibidos de la API:', dashboardData.countries.map(c => ({
+      code: c.country_code,
+      risk: c.risk_level,
+      magnitude: c.max_magnitude,
+      last_date: c.last_date
+    })));
+
+    const processedCountries = dashboardData.countries.map(country => {
+      const raw = country.country_code || '';
+      
+      // Depuración detallada para Brasil
+      if (raw.toUpperCase() === 'BRAZIL' || raw.toUpperCase() === 'BR' || raw.toUpperCase() === 'BRA') {
+        console.log('=== DEPURACIÓN BRASIL (INICIO) ===');
+        console.log('Datos crudos de Brasil:', JSON.stringify(country, null, 2));
+      }
+      
+      // Primero intentar encontrar coincidencia exacta (case insensitive)
+      const key = Object.keys(META).find(k => {
+        const meta = META[k as keyof typeof META];
+        const matches = (
+          k.toUpperCase() === raw.toUpperCase() || 
+          meta.name.toUpperCase() === raw.toUpperCase() ||
+          meta.code.toUpperCase() === raw.toUpperCase()
+        );
+        
+        if (matches && (raw.toUpperCase() === 'BRAZIL' || raw.toUpperCase() === 'BR' || raw.toUpperCase() === 'BRA')) {
+          console.log(`[BRASIL] Coincidencia encontrada para clave: ${k}, meta:`, meta);
+        }
+        
+        return matches;
+      });
+      
+      const meta = key ? META[key as keyof typeof META] : null;
+      const name = meta?.name || raw;
+      const code = meta?.code || raw.slice(0, 2).toUpperCase();
+      const coords = meta?.coordinates || [0, 0];
+      const riskLevel = normRisk(country.risk_level);
+      
+      // Depuración detallada para Brasil
+      if (code === 'BR' || raw.toUpperCase() === 'BRAZIL' || raw.toUpperCase() === 'BR' || raw.toUpperCase() === 'BRA') {
+        console.log('=== DEPURACIÓN BRASIL (PROCESADO) ===');
+        console.log('Datos procesados de Brasil:', {
+          raw,
+          key,
+          meta,
+          name,
+          code,
+          coords,
+          riskLevel,
+          originalRisk: country.risk_level,
+          magnitude: country.max_magnitude
+        });
+      }
+      
+      console.log(`Procesando país: ${raw} -> name:${name}, code:${code}, risk:${country.risk_level} -> ${riskLevel}`);
+
+      const result = {
+        id: code.toLowerCase(),
+        name,
+        code,
+        coordinates: [coords[0], coords[1]] as [number, number],
+        riskLevel,
+        lastEarthquake: country.last_date,
+        magnitude: country.max_magnitude
+      };
+      
+      // Depuración final para Brasil
+      if (code === 'BR' || raw.toUpperCase() === 'BRAZIL') {
+        console.log('=== DATOS FINALES DE BRASIL ===');
+        console.log(JSON.stringify(result, null, 2));
+      }
+      
+      return result;
+    });
+    
+    console.log('=== PAÍSES PROCESADOS ===');
+    console.log(JSON.stringify(processedCountries.map(c => ({
+      name: c.name,
+      code: c.code,
+      risk: c.riskLevel,
+      magnitude: c.magnitude,
+      coordinates: c.coordinates
+    })), null, 2));
+    
+    return processedCountries;
   }, [dashboardData]);
 
   // Helper to normalize names for matching
@@ -143,7 +311,7 @@ const DashboardGrid: React.FC = () => {
       
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
           <div className="p-2 bg-red-100 rounded-md"><AlertTriangle className="h-5 w-5 text-red-600"/></div>
           <div>
             <div className="text-sm text-gray-600">Último sismo registrado</div>
@@ -159,7 +327,7 @@ const DashboardGrid: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
           <div className="p-2 bg-blue-100 rounded-md"><Activity className="h-5 w-5 text-blue-600"/></div>
           <div>
             <div className="text-sm text-gray-600">Sismos detectados ({range === '24h' ? '24h' : range === '7d' ? 'última semana' : 'último mes'})</div>
@@ -167,7 +335,7 @@ const DashboardGrid: React.FC = () => {
             <div className="text-xs text-gray-500">Basado en datos reales</div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-5 flex items-start space-x-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
           <div className="p-2 bg-yellow-100 rounded-md"><TrendingUp className="h-5 w-5 text-yellow-700"/></div>
           <div>
             <div className="text-sm text-gray-600">País con mayor riesgo</div>
@@ -196,12 +364,22 @@ const DashboardGrid: React.FC = () => {
                 {r === '24h' ? 'Últimas 24h' : r === '7d' ? 'Última semana' : 'Último mes'}
               </button>
             ))}
+            <div className="hidden md:flex items-center space-x-1 ml-2">
+              <span className="text-xs text-gray-500">Sombreado</span>
+              <button
+                onClick={() => setShadeEnabled(v => !v)}
+                className={`px-1.5 py-0.5 rounded text-xs border w-8 ${shadeEnabled ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                title="Mostrar/Ocultar áreas sombreadas por riesgo"
+              >
+                {shadeEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             {/* Static map; enables interactions only after selecting país */}
-            <SeismicMap data={mapData} center={mapCenter} zoom={mapZoom} disableInteractions={!interactionsEnabled} countries={countries} />
+            <SeismicMap data={mapData} center={mapCenter} zoom={mapZoom} disableInteractions={!interactionsEnabled} countries={countries} shadeEnabled={shadeEnabled} />
           </div>
           <div className="lg:col-span-1">
             <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -226,7 +404,7 @@ const DashboardGrid: React.FC = () => {
                         setMapZoom(6);
                         setInteractionsEnabled(true);
                       }}
-                      className="w-full text-left flex items-center justify-between px-4 py-3 hover:bg-gray-50"
+                      className="w-full text-left flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center space-x-3">
                         <span className="text-lg">{c.riskLevel === 'very-high' ? '🔴' : c.riskLevel === 'high' ? '🟠' : c.riskLevel === 'medium' ? '🟡' : '🟢'}</span>
@@ -251,28 +429,28 @@ const DashboardGrid: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Feature Cards */}
           <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded-lg p-4 flex items-start space-x-3">
+            <div className="border rounded-lg p-4 flex items-start space-x-3 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="p-2 bg-green-100 rounded-md"><Activity className="h-5 w-5 text-green-700"/></div>
               <div>
                 <div className="font-medium text-gray-900">Monitoreo en tiempo real</div>
                 <div className="text-sm text-gray-600">Seguimiento continuo de eventos sísmicos y su evolución.</div>
               </div>
             </div>
-            <div className="border rounded-lg p-4 flex items-start space-x-3">
+            <div className="border rounded-lg p-4 flex items-start space-x-3 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="p-2 bg-blue-100 rounded-md"><TrendingUp className="h-5 w-5 text-blue-700"/></div>
               <div>
                 <div className="font-medium text-gray-900">Análisis de tendencias</div>
                 <div className="text-sm text-gray-600">Detección de patrones y estimaciones basadas en históricos.</div>
               </div>
             </div>
-            <div className="border rounded-lg p-4 flex items-start space-x-3">
+            <div className="border rounded-lg p-4 flex items-start space-x-3 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="p-2 bg-yellow-100 rounded-md"><AlertTriangle className="h-5 w-5 text-yellow-700"/></div>
               <div>
                 <div className="font-medium text-gray-900">Alertas tempranas</div>
                 <div className="text-sm text-gray-600">Avisos para regiones con incremento de riesgo.</div>
               </div>
             </div>
-            <div className="border rounded-lg p-4 flex items-start space-x-3">
+            <div className="border rounded-lg p-4 flex items-start space-x-3 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
               <div className="p-2 bg-purple-100 rounded-md"><MapPin className="h-5 w-5 text-purple-700"/></div>
               <div>
                 <div className="font-medium text-gray-900">Detalle por país</div>
@@ -281,7 +459,7 @@ const DashboardGrid: React.FC = () => {
             </div>
           </div>
           {/* Roadmap */}
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center mb-3"><ListChecks className="h-5 w-5 text-gray-700 mr-2"/><h4 className="font-medium text-gray-900">Próximas funcionalidades</h4></div>
             <ol className="relative ms-4 border-s border-gray-200 space-y-4">
               <li className="ms-6">

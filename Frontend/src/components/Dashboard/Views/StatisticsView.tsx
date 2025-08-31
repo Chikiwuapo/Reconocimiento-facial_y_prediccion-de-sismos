@@ -135,7 +135,7 @@ const StatisticsView: React.FC = () => {
       <ErrorFallback />
       
       {/* Header de Estadísticas con Filtro de Año */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-3">
             <TrendingUp className="h-8 w-8 text-red-600" />
@@ -194,7 +194,7 @@ const StatisticsView: React.FC = () => {
 
       {/* KPIs Principales */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Sismos</p>
