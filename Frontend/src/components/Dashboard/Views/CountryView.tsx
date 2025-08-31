@@ -81,16 +81,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
     { depth: '40km+', count: Math.floor(earthquakeHistory.length * 0.1), risk: 'very-low' }
   ];
 
-  const getRiskLevelBadge = (riskLevel: string) => {
-    switch (riskLevel) {
-      case 'very-high': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'very-low': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // (removed unused helper)
 
   if (loading) {
     return (
@@ -123,7 +114,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
       <ErrorFallback />
       
       {/* Header del País con Filtro de Año */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-red-100 rounded-full">
@@ -182,7 +173,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
 
         {/* KPIs del País */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-gray-50 rounded-lg p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center space-x-2">
               <Activity className="h-5 w-5 text-blue-600" />
               <span className="text-sm font-medium text-gray-600">Total Sismos</span>
@@ -193,7 +184,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-gray-50 rounded-lg p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center space-x-2">
               <Zap className="h-5 w-5 text-orange-600" />
               <span className="text-sm font-medium text-gray-600">Magnitud Máx</span>
@@ -206,7 +197,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-gray-50 rounded-lg p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-green-600" />
               <span className="text-sm font-medium text-gray-600">Promedio</span>
@@ -217,7 +208,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
             <p className="text-xs text-gray-500">Magnitud</p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-gray-50 rounded-lg p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center space-x-2">
               <Clock className="h-5 w-5 text-purple-600" />
               <span className="text-sm font-medium text-gray-600">Último</span>
@@ -231,9 +222,9 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Historial de Sismos */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Historial de Sismos ({selectedYear === 'all' ? 'Todos los años' : selectedYear})
           </h3>
@@ -251,7 +242,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
         </div>
 
         {/* Distribución de Magnitudes */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             Distribución de Magnitudes ({selectedYear === 'all' ? 'Todos los años' : selectedYear})
           </h3>
@@ -279,7 +270,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
       </div>
 
       {/* Análisis de Profundidad */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Análisis de Profundidad vs Frecuencia ({selectedYear === 'all' ? 'Todos los años' : selectedYear})
         </h3>
@@ -297,7 +288,7 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
       </div>
 
       {/* Tabla de Sismos Recientes */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Sismos Recientes ({selectedYear === 'all' ? 'Todos los años' : selectedYear})
         </h3>
@@ -340,12 +331,12 @@ const CountryView: React.FC<CountryViewProps> = ({ country }) => {
       </div>
 
       {/* Predicciones y Alertas */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
           Predicciones y Alertas ({selectedYear === 'all' ? 'Todos los años' : selectedYear})
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 transition-transform duration-200 hover:shadow-md hover:-translate-y-0.5">
             <div className="flex items-center space-x-2 mb-2">
               <AlertTriangle className="h-5 w-5 text-yellow-600" />
               <span className="font-medium text-yellow-800">Probabilidad Promedio</span>

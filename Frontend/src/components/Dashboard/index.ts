@@ -11,6 +11,3 @@ export { default as CountryView } from './Views/CountryView';
 // Context
 export { DashboardProvider, useDashboard } from './Context/DashboardContext';
 export type { ViewType, Country, DashboardContextType } from './Context/DashboardContext';
-
-// Widgets
-export { default as ProfitabilityMap } from './Widgets/Charts/ProfitabilityMap';
