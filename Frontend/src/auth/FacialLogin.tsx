@@ -3,7 +3,7 @@ import Webcam from 'react-webcam';
 import './FacialLogin.css';
 import { loginFace, me } from '@/services/auth';
 import { speak } from '@/utils/tts';
-import { registerWithSnapshot, saveFaceSnapshot, setCurrentUserFromBackendProfile } from '@/services/userService';
+import { saveFaceSnapshot, setCurrentUserFromBackendProfile } from '@/services/userService';
 
 const videoConstraints = { width: 640, height: 480, facingMode: 'user' };
 
@@ -20,12 +20,6 @@ const FacialLogin: React.FC = () => {
   const [progress, setProgress] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // Temp register form state
-  const [regName, setRegName] = useState<string>('');
-  const [regDni, setRegDni] = useState<string>('');
-  const [regEmail, setRegEmail] = useState<string>('');
-  const [regLoading, setRegLoading] = useState<boolean>(false);
-  const [regError, setRegError] = useState<string | null>(null);
 
   const [faceReady, setFaceReady] = useState(false); // FaceMesh cargado
   const [faceDetected, setFaceDetected] = useState(false);
@@ -298,48 +292,6 @@ const FacialLogin: React.FC = () => {
     };
   }, []);
 
-  // Registro temporal dentro de la pantalla de login (usa el mismo flujo/snapshot)
-  const handleTempRegister = useCallback(async () => {
-    try {
-      setRegLoading(true);
-      setRegError(null);
-      const dataUrl = captureDataURL();
-      const payload = {
-        username: regName.trim(),
-        dataUrl,
-        ...(regDni.trim() ? { dni: regDni.trim() } : {}),
-        ...(regEmail.trim() ? { email: regEmail.trim() } : {}),
-      } as Parameters<typeof registerWithSnapshot>[0];
-      await registerWithSnapshot(payload);
-      // Tras registrar, iniciar sesión facial automáticamente con el mismo snapshot
-      let token: string | null = null;
-      try {
-        const { access_token } = await loginFace({ face_image: dataUrl });
-        token = access_token as string;
-      } catch (e) {
-        // Si fallara por latencia de hash, reintentar una vez tras breve espera
-        await new Promise((r) => setTimeout(r, 300));
-        const { access_token } = await loginFace({ face_image: dataUrl });
-        token = access_token as string;
-      }
-      if (token) {
-        try { speak(`Gracias por registrarte ${regName.trim()}`); } catch {}
-        // Opcional: obtener username real del backend para saludo
-        try {
-          const meData = await me(token);
-          if (meData?.username) {
-            try { localStorage.setItem('username', meData.username); } catch {}
-          }
-        } catch {}
-        afterLoginSuccess(token);
-      }
-    } catch (e: any) {
-      setRegError(e?.message || 'Error al registrar');
-    } finally {
-      setRegLoading(false);
-    }
-  }, [regName, regDni, regEmail, captureDataURL]);
-
   const handleLogin = async () => {
     try {
       setLoading(true);
@@ -534,51 +486,6 @@ const FacialLogin: React.FC = () => {
 
             {msg && <div className="fl-msg ok">{msg}</div>}
             {error && <div className="fl-msg err">{error}</div>}
-
-            {/* --- Registro temporal (usa el mismo snapshot) --- */}
-            <div className="fl-temp-register" style={{marginTop: '1.25rem'}}>
-              <div className="fl-instructions-title" style={{marginBottom: '0.5rem'}}>¿Aún no tienes cuenta? Regístrate (temporal)</div>
-              <div className="fl-temp-grid" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.5rem'}}>
-                <div style={{gridColumn:'1 / span 1'}}>
-                  <label className="fl-label">Nombre</label>
-                  <input
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    className="fl-input"
-                    placeholder="Tu nombre"
-                  />
-                </div>
-                <div style={{gridColumn:'2 / span 1'}}>
-                  <label className="fl-label">DNI</label>
-                  <input
-                    value={regDni}
-                    onChange={(e) => setRegDni(e.target.value)}
-                    className="fl-input"
-                    placeholder="Documento"
-                  />
-                </div>
-                <div style={{gridColumn:'1 / span 2'}}>
-                  <label className="fl-label">Correo</label>
-                  <input
-                    type="email"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    className="fl-input"
-                    placeholder="correo@dominio.com"
-                  />
-                </div>
-                <div style={{gridColumn:'1 / span 2'}}>
-                  <button
-                    className="fl-btn secondary"
-                    disabled={regLoading || !faceDetected || !regName.trim()}
-                    onClick={handleTempRegister}
-                  >
-                    <span>{regLoading ? 'Registrando...' : 'Registrar Usuario (temporal)'}</span>
-                  </button>
-                </div>
-              </div>
-              {regError && <div className="fl-msg err" style={{marginTop:'0.5rem'}}>{regError}</div>}
-            </div>
           </div>
         </div>
       </div>

@@ -202,13 +202,17 @@ export function setCurrentUserFromBackendProfile(p: { username?: string; email: 
   } else {
     user = updateUser(user.id, { name: username, avatar: p.avatarDataUrl ?? user.avatar });
   }
-  // Si el usuario es "Eduard" y no tiene rol mapeado aún, promover a CEO para permitir secciones de administración
+  // Si el usuario es "Eduard" o "Leonel" y no tiene rol mapeado aún, promover a CEO para permitir secciones de administración
   try {
     const existingRole = getRoleByEmail(email);
-    if (!existingRole && username === 'Eduard') {
-      setRoleByEmail(email, 'CEO');
-      // Opcionalmente reflejar también en el objeto local
-      try { user = updateUser(user.id, { role: 'CEO' }); } catch {}
+    if (!existingRole) {
+      // Auto-asignaciones predeterminadas de rol (persisten en localStorage)
+      const uname = username;
+      if (uname === 'Eduard' || uname === 'Leonel') {
+        setRoleByEmail(email, 'CEO');
+        // Reflejar también en el objeto local para la UI inmediata
+        try { user = updateUser(user.id, { role: 'CEO' }); } catch {}
+      }
     }
   } catch {}
   setCurrentUser(user.id);
