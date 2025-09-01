@@ -1,0 +1,163 @@
+/* ===== ESTILOS ADAPTATIVOS PARA STATISTICSVIEW ===== */
+
+/* Contenedor principal de la tarjeta */
+.riskCard {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
+}
+
+.riskCard:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Tema Claro */
+.riskCardLight {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.riskCardLight:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Tema Oscuro */
+.riskCardDark {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+}
+
+.riskCardDark:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+}
+
+/* Título de la tarjeta */
+.riskTitle {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.riskTitleLight {
+  color: #111827;
+}
+
+.riskTitleDark {
+  color: #ffffff;
+}
+
+/* Contenedor del gráfico */
+.riskChartContainer {
+  height: 20rem;
+}
+
+/* Estilos para el tooltip */
+.riskTooltip {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.riskTooltipLight {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #111827;
+}
+
+.riskTooltipDark {
+  background-color: #1f2937;
+  border: 1px solid #374151;
+  color: #ffffff;
+}
+
+/* Estilos para las etiquetas del tooltip */
+.riskTooltipLabel {
+  font-weight: 600;
+}
+
+.riskTooltipLabelLight {
+  color: #111827;
+}
+
+.riskTooltipLabelDark {
+  color: #ffffff;
+}
+
+/* Estilos para los valores del tooltip */
+.riskTooltipValue {
+  font-weight: 500;
+}
+
+.riskTooltipValueLight {
+  color: #374151;
+}
+
+.riskTooltipValueDark {
+  color: #d1d5db;
+}
+
+/* Estilos para los elementos del tooltip */
+.riskTooltipItem {
+  transition: color 0.2s ease;
+}
+
+.riskTooltipItemLight {
+  color: #374151;
+}
+
+.riskTooltipItemDark {
+  color: #d1d5db;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .riskChartContainer {
+    height: 16rem;
+  }
+  
+  .riskTitle {
+    font-size: 1rem;
+  }
+}
+
+/* ===== ESTILOS PARA LA LEYENDA ===== */
+
+/* Contenedor de la leyenda */
+.riskLegend {
+  margin-top: 1rem;
+}
+
+/* Grid de elementos de la leyenda */
+.riskLegendGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+/* Elemento individual de la leyenda */
+.riskLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Indicador de color */
+.riskLegendIndicator {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Texto de la leyenda */
+.riskLegendText {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+/* Responsive para la leyenda */
+@media (min-width: 768px) {
+  .riskLegendGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

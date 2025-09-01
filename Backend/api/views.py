@@ -346,7 +346,7 @@ def country_yearly_statistics(request, country_code, year):
         
         total, avg_mag, max_mag, first_date, last_date, avg_prob_7d, avg_prob_30d, avg_prob_90d = country_stats
         
-        # Obtener algunos eventos recientes del país para el año
+        # Obtener todos los eventos del país para el año (sin límite para permitir paginación en el frontend)
         cursor.execute("""
             SELECT 
                 event_date,
@@ -358,7 +358,6 @@ def country_yearly_statistics(request, country_code, year):
             FROM prediction 
             WHERE country_code = %s AND strftime('%%Y', event_date) = %s
             ORDER BY event_date DESC
-            LIMIT 10
         """, [country_code, str(year)])
         
         recent_events = cursor.fetchall()
@@ -636,92 +635,149 @@ def all_years_statistics(request):
 def country_all_years_statistics(request, country_code):
     """Obtener estadísticas de sismos de todos los años para un país específico"""
     
-    # Países sudamericanos permitidos
-    south_american_countries = [
-        'Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 
-        'Ecuador', 'Guyana', 'Paraguay', 'Peru', 'Suriname', 
-        'Uruguay', 'Venezuela'
-    ]
-    
-    if country_code not in south_american_countries:
-        return Response(
-            {'error': 'País no válido o no sudamericano'}, 
-            status=400
-        )
-    
-    with connection.cursor() as cursor:
-        # Estadísticas generales de todos los años para el país
-        cursor.execute("""
-            SELECT 
-                COUNT(*) as total_earthquakes,
-                AVG(max_mag_last90d) as avg_magnitude,
-                MAX(max_mag_last90d) as max_magnitude,
-                MIN(event_date) as first_date,
-                MAX(event_date) as last_date,
-                AVG(prob_m45_next7d) as avg_prob_7d,
-                AVG(prob_m50_next30d) as avg_prob_30d,
-                AVG(prob_m60_next90d) as avg_prob_90d
-            FROM prediction 
-            WHERE country_code = %s
-        """, [country_code])
+    try:
+        # Países sudamericanos permitidos
+        south_american_countries = [
+            'Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 
+            'Ecuador', 'Guyana', 'Paraguay', 'Peru', 'Suriname', 
+            'Uruguay', 'Venezuela'
+        ]
         
-        general_stats = cursor.fetchone()
+        if country_code not in south_american_countries:
+            return Response(
+                {'error': 'País no válido o no sudamericano'}, 
+                status=400
+            )
         
-        if not general_stats or general_stats[0] == 0:
-            return Response({
-                'country_code': country_code,
-                'period': 'Todos los años',
-                'total_earthquakes': 0,
-                'avg_magnitude': 0,
-                'max_magnitude': 0,
-                'first_date': None,
-                'last_date': None,
-                'avg_prob_7d': 0,
-                'avg_prob_30d': 0,
-                'avg_prob_90d': 0,
-                'recent_events': []
-            })
+        with connection.cursor() as cursor:
+            # Obtener estadísticas por año individual para el país
+            cursor.execute("""
+                SELECT 
+                    substr(event_date, 1, 4) as year,
+                    COUNT(*) as total_earthquakes,
+                    AVG(max_mag_last90d) as avg_magnitude,
+                    MAX(max_mag_last90d) as max_magnitude,
+                    MIN(event_date) as first_date,
+                    MAX(event_date) as last_date,
+                    AVG(prob_m45_next7d) as avg_prob_7d,
+                    AVG(prob_m50_next30d) as avg_prob_30d,
+                    AVG(prob_m60_next90d) as avg_prob_90d
+                FROM prediction 
+                WHERE country_code = %s
+                GROUP BY substr(event_date, 1, 4)
+                ORDER BY year ASC
+            """, [country_code])
+            
+            yearly_stats = cursor.fetchall()
         
-        total, avg_mag, max_mag, first_date, last_date, avg_prob_7d, avg_prob_30d, avg_prob_90d = general_stats
+            if not yearly_stats:
+                return Response({
+                    'country_code': country_code,
+                    'period': 'Todos los años',
+                    'total_earthquakes': 0,
+                    'avg_magnitude': 0,
+                    'max_magnitude': 0,
+                    'first_date': None,
+                    'last_date': None,
+                    'avg_prob_7d': 0,
+                    'avg_prob_30d': 0,
+                    'avg_prob_90d': 0,
+                    'recent_events': [],
+                    'yearly_breakdown': []
+                })
+            
+            # Calcular estadísticas generales sumando los totales de cada año
+            total_earthquakes = sum(row[1] for row in yearly_stats)
+            all_magnitudes = []
+            all_prob_7d = []
+            all_prob_30d = []
+            all_prob_90d = []
+            
+            for row in yearly_stats:
+                if row[2] is not None:  # Solo agregar si la magnitud no es None
+                    all_magnitudes.extend([row[2]] * row[1])  # Repetir la magnitud promedio por la cantidad de eventos
+                if row[6] is not None: 
+                    all_prob_7d.extend([row[6]] * row[1])
+                if row[7] is not None: 
+                    all_prob_30d.extend([row[7]] * row[1])
+                if row[8] is not None: 
+                    all_prob_90d.extend([row[8]] * row[1])
+            
+            # Calcular estadísticas generales ponderadas por cantidad de eventos
+            avg_magnitude = sum(all_magnitudes) / len(all_magnitudes) if all_magnitudes else 0
+            avg_prob_7d = sum(all_prob_7d) / len(all_prob_7d) if all_prob_7d else 0
+            avg_prob_30d = sum(all_prob_30d) / len(all_prob_30d) if all_prob_30d else 0
+            avg_prob_90d = sum(all_prob_90d) / len(all_prob_90d) if all_prob_90d else 0
+            
+            # Obtener magnitud máxima general y fechas extremas
+            max_magnitude = max((row[3] for row in yearly_stats if row[3] is not None), default=0)
+            first_date = min((row[4] for row in yearly_stats if row[4] is not None), default=None)
+            last_date = max((row[5] for row in yearly_stats if row[5] is not None), default=None)
+            
+            # Eventos recientes de todos los años
+            cursor.execute("""
+                SELECT 
+                    event_date,
+                    location,
+                    max_mag_last90d,
+                    prob_m45_next7d,
+                    prob_m50_next30d,
+                    prob_m60_next90d
+                FROM prediction 
+                WHERE country_code = %s
+                ORDER BY event_date DESC
+            """, [country_code])
+            
+            recent_events = []
+            for row in cursor.fetchall():
+                recent_events.append({
+                    'date': str(row[0]),
+                    'location': row[1] or 'N/A',
+                    'magnitude': row[2] or 0,
+                    'prob_7d': row[3] or 0,
+                    'prob_30d': row[4] or 0,
+                    'prob_90d': row[5] or 0
+                })
         
-        # Eventos recientes (últimos 10) de todos los años
-        cursor.execute("""
-            SELECT 
-                event_date,
-                location,
-                max_mag_last90d,
-                prob_m45_next7d,
-                prob_m50_next30d,
-                prob_m60_next90d
-            FROM prediction 
-            WHERE country_code = %s
-            ORDER BY event_date DESC
-            LIMIT 10
-        """, [country_code])
-        
-        recent_events = []
-        for row in cursor.fetchall():
-            recent_events.append({
-                'date': str(row[0]),
-                'location': row[1] or 'N/A',
-                'magnitude': row[2] or 0,
-                'prob_7d': row[3] or 0,
-                'prob_30d': row[4] or 0,
-                'prob_90d': row[5] or 0
+        # Crear desglose por año
+        yearly_breakdown = []
+        for row in yearly_stats:
+            yearly_breakdown.append({
+                'year': row[0],
+                'total_earthquakes': row[1],
+                'avg_magnitude': row[2],
+                'max_magnitude': row[3],
+                'first_date': row[4],
+                'last_date': row[5],
+                'avg_prob_7d': row[6],
+                'avg_prob_30d': row[7],
+                'avg_prob_90d': row[8]
             })
         
         statistics = {
             'country_code': country_code,
             'period': 'Todos los años',
-            'total_earthquakes': total,
-            'avg_magnitude': avg_mag,
-            'max_magnitude': max_mag,
+            'total_earthquakes': total_earthquakes,
+            'avg_magnitude': avg_magnitude,
+            'max_magnitude': max_magnitude,
             'first_date': first_date,
             'last_date': last_date,
             'avg_prob_7d': avg_prob_7d,
             'avg_prob_30d': avg_prob_30d,
             'avg_prob_90d': avg_prob_90d,
-            'recent_events': recent_events
+            'recent_events': recent_events,
+            'yearly_breakdown': yearly_breakdown
         }
         
         return Response(statistics)
+    
+    except Exception as e:
+        print(f"Error in country_all_years_statistics for {country_code}: {str(e)}")
+        return Response(
+            {
+                'error': f'Error interno del servidor: {str(e)}',
+                'country_code': country_code,
+                'period': 'Todos los años'
+            }, 
+            status=500
+        )
