@@ -17,6 +17,7 @@ class UserOut(BaseModel):
     username: str
     dni: str
     email: str
+    role: str
 
     class Config:
         from_attributes = True
