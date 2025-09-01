@@ -9,6 +9,9 @@ class User(Base):
     username = Column(String(100), nullable=False)
     dni = Column(String(50), nullable=False)
     email = Column(String(255), nullable=False)
+    # Nuevo: rol persistido en DB (CEO | Administrador | Supervisor | Usuario)
+    # server_default asegura valor para filas existentes tras migración
+    role = Column(String(32), nullable=False, server_default='Usuario')
     face_hash = Column(String(255), nullable=False)
     # Guardar hora local de Lima (UTC-5) al momento de insertar (independiente de la zona del servidor)
     # En SQLite, func.datetime('now', '-5 hours') aplica el offset al timestamp actual
