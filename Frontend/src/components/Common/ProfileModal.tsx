@@ -99,13 +99,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
       fetchUsersForManagement()
         .then(list => {
           if (cancelled) return;
-          // Si aparece 'Edu', asegurar persistencia como CEO
-          try {
-            list.forEach(u => {
-              const nameLc = (u.username || '').trim().toLowerCase();
-              if (nameLc === 'edu' || nameLc === 'eduard') { grantCEOByEmail(u.email); }
-            });
-          } catch {}
           setUsersList(list);
           setRolesVersion(v=>v+1);
         })
@@ -147,9 +140,6 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
   };
 
   const getDisplayRole = useCallback((u: BackendUser): string => {
-    const nameLc = (u.username || '').trim().toLowerCase();
-    // Regla dura: 'Edu' es CEO aunque la persistencia diga otra cosa
-    if (nameLc === 'edu' || nameLc === 'eduard') return 'CEO';
     const persisted = getRoleByEmail(u.email);
     if (persisted) return persisted;
     return 'Usuario';
@@ -486,31 +476,29 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
       title="Perfil de Usuario"
       size="lg"
     >
-      {/* Tabs */}
-      <div className="flex gap-2 px-2 md:px-4">
-        <button
-          className={`px-3 py-2 rounded-md text-sm ${activeTab === 'perfil' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
-          onClick={() => setActiveTab('perfil')}
-        >
-          Perfil
-        </button>
-        {(isAdmin(currentUser) || isCEO(currentUser)) && (
-          <>
-            <button
-              className={`px-3 py-2 rounded-md text-sm ${activeTab === 'rostro' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
-              onClick={() => setActiveTab('rostro')}
-            >
-              Registrar/Actualizar rostro
-            </button>
-            <button
-              className={`px-3 py-2 rounded-md text-sm ${activeTab === 'usuarios' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
-              onClick={() => setActiveTab('usuarios')}
-            >
-              Gestión de usuarios
-            </button>
-          </>
-        )}
-      </div>
+      {/* Tabs: mostrar solo para Admin/CEO */}
+      {(isAdmin(currentUser) || isCEO(currentUser)) && (
+        <div className="flex gap-2 px-2 md:px-4">
+          <button
+            className={`px-3 py-2 rounded-md text-sm ${activeTab === 'perfil' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+            onClick={() => setActiveTab('perfil')}
+          >
+            Perfil
+          </button>
+          <button
+            className={`px-3 py-2 rounded-md text-sm ${activeTab === 'rostro' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+            onClick={() => setActiveTab('rostro')}
+          >
+            Registrar/Actualizar rostro
+          </button>
+          <button
+            className={`px-3 py-2 rounded-md text-sm ${activeTab === 'usuarios' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+            onClick={() => setActiveTab('usuarios')}
+          >
+            Gestión de usuarios
+          </button>
+        </div>
+      )}
 
       <div className={`${activeTab === 'perfil' || activeTab === 'usuarios' ? 'grid grid-cols-1' : 'grid grid-cols-1 md:grid-cols-2'} gap-6 py-4 px-2 md:px-4`}>
         {/* Columna izquierda */}
@@ -571,7 +559,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
 
         {/* Columna derecha */}
         <div className="flex flex-col space-y-4">
-          {activeTab === 'rostro' && isAdmin(currentUser) && (
+          {activeTab === 'rostro' && (isAdmin(currentUser) || isCEO(currentUser)) && (
             <div>
               <h4 className="text-lg font-semibold">Registrar/Actualizar rostro</h4>
 

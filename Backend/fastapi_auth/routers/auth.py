@@ -106,32 +106,36 @@ def login_face(
     db: Session = Depends(get_db),
 ):
     """
-    Login solo con la cara: se compara el hash del rostro provisto con los almacenados.
-    Si coincide con algún usuario, emite token. Evita pedir DNI/correo en login.
+    Login solo con la cara: comparar pHash del rostro provisto con todos los almacenados.
+    Seleccionar SIEMPRE la mejor coincidencia global y validar contra el umbral.
     """
+    from ..security import FACE_MATCH_THRESHOLD
+
     provided_hash = compute_face_hash_from_base64(face_image)
     print(f"Provided face hash: {provided_hash}")
 
-    # Buscar coincidencia de rostro
-    user = None
     best_match_distance = 64
     best_match_user = None
-    
+
     for candidate in db.query(models.User).all():
         distance = hamming_distance(candidate.face_hash, provided_hash)
-        print(f"Comparing with user {candidate.username}: distance={distance}")
+        print(f"Comparing with user {candidate.username} (id={candidate.id}): distance={distance}")
         if distance < best_match_distance:
             best_match_distance = distance
             best_match_user = candidate
-        if is_same_face(candidate.face_hash, provided_hash):
-            user = candidate
-            break
 
-    if not user:
-        print(f"No exact match found. Best match: {best_match_user.username if best_match_user else 'None'} with distance {best_match_distance}")
-        raise HTTPException(status_code=401, detail=f"Rostro no coincide con ningún usuario registrado. Mejor coincidencia: distancia {best_match_distance}")
+    if not best_match_user or best_match_distance > FACE_MATCH_THRESHOLD:
+        print(
+            "No match under threshold. Best match: "
+            f"{best_match_user.username if best_match_user else 'None'} with distance {best_match_distance},"
+            f" threshold={FACE_MATCH_THRESHOLD}"
+        )
+        raise HTTPException(
+            status_code=401,
+            detail=f"Rostro no coincide con ningún usuario registrado. Mejor coincidencia: distancia {best_match_distance}",
+        )
 
-    token = create_access_token(subject=user.email)
+    token = create_access_token(subject=best_match_user.email)
     return {"access_token": token, "token_type": "bearer"}
 
 

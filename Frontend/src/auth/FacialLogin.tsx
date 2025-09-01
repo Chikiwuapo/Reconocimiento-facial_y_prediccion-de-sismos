@@ -46,8 +46,8 @@ const FacialLogin: React.FC = () => {
   const farFramesRef = useRef(0);
   const nearFramesRef = useRef(0);
   const lastLoginShotRef = useRef<string | null>(null);
-  // Controlar rojo temporal cuando no hay coincidencias
-  const [noMatchUntilTs, setNoMatchUntilTs] = useState<number>(0);
+  // Controlar rojo temporal cuando no hay coincidencias (solo ref para evitar estado obsoleto en callbacks)
+  const noMatchUntilRef = useRef<number>(0);
 
   // Componente de LOGIN únicamente
 
@@ -174,7 +174,7 @@ const FacialLogin: React.FC = () => {
             // Color con prioridad con rojo temporal: no_match (<=2s) > rosa (lejos) > fases (login) > verde
             let color = '#22c55e'; // verde por defecto
             const nowTs = Date.now();
-            if (phaseRef.current === 'no_match' && nowTs < noMatchUntilTs) {
+            if (phaseRef.current === 'no_match' && nowTs < noMatchUntilRef.current) {
               color = '#EF4444'; // rojo temporal
             } else if (farRef.current) {
               color = '#EC4899'; // rosa
@@ -352,7 +352,8 @@ const FacialLogin: React.FC = () => {
       timersRef.current.forEach((t) => clearTimeout(t));
       timersRef.current = [];
       setPhase('detecting');
-      sayOnce('detecting', 'Detectando rostro', 1200);
+      // Alinear TTS y barra de progreso: ambos ~2000ms
+      sayOnce('detecting', 'Detectando rostro', 2000);
       animateProgressTo(35, 2000);
       timersRef.current.push(window.setTimeout(() => {
         if (!attemptActiveRef.current) return;
@@ -360,7 +361,8 @@ const FacialLogin: React.FC = () => {
           sayOnce('far', 'Estas muy lejos', 1000);
         }
         setPhase('analyzing');
-        sayOnce('analyzing', 'Analizando rostro', 1200);
+        // Alinear TTS y barra de progreso: ambos ~2000ms
+        sayOnce('analyzing', 'Analizando rostro', 2000);
         animateProgressTo(70, 2000);
       }, 2000));
       // Intentar login tras 4s (2s azul + 2s amarillo)
@@ -426,13 +428,13 @@ const FacialLogin: React.FC = () => {
       setError(null);
       setMsg(null);
       setPhase('no_match');
-      // Activar rojo por 2s y luego volver a estado base
-      const until = Date.now() + 2000;
-      setNoMatchUntilTs(until);
+      // Activar rojo por 2.5s y luego volver a estado base
+      const until = Date.now() + 2500;
+      noMatchUntilRef.current = until;
       const t = window.setTimeout(() => {
         // Al vencer el rojo, si no hay otro intento, volvemos a idle
         if (phaseRef.current === 'no_match') setPhase('idle');
-      }, 2000);
+      }, 2500);
       timersRef.current.push(t);
       sayOnce('no_match', 'Sin registros', 800);
       attemptActiveRef.current = false;
