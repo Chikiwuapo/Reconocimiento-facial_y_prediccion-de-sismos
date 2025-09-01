@@ -19,23 +19,30 @@ interface ProfileModalProps {
 // NUEVO: Integrar registro facial aquí
 import Webcam from 'react-webcam';
 import { useRef, useState, useMemo, useCallback, useEffect } from 'react';
-import { registerUser, loginFace } from '@/services/auth';
+import { registerWithSnapshot, getCurrentUser as getCurrentUserSrv } from '@/services/userService';
 import { speak } from '@/utils/tts';
 import {
   getCurrentUser,
-  getUsers,
-  createUser,
-  updateUser as updateUserSrv,
-  deleteUser as deleteUserSrv,
-  USER_ROLES,
-  USER_STATUSES,
+  fetchUsersForManagement,
+  deleteBackendUserByUsername,
   isAdmin,
+  isCEO,
+  updateBackendUser,
+  getRoleByEmail,
+  grantAdminByEmail,
+  revokeAdminByEmail,
+  grantCEOByEmail,
+  revokeCEOByEmail,
   type User,
-  type UserRole,
-  type UserStatus,
+  type BackendUser,
 } from '@/services/userService';
 
 const videoConstraints = { width: 640, height: 480, facingMode: 'user' } as const;
+// Precarga de MediaPipe en paralelo
+const FACE_MESH_IMPORT = Promise.all([
+  import('@mediapipe/face_mesh'),
+  import('@mediapipe/camera_utils'),
+]);
 
 const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLogout }) => {
   // Sin datos simulados: usar lo que venga en props o vacío
@@ -50,7 +57,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [message, setMessage] = useState<string | null>(null);
+  // Mensajes visuales de éxito eliminados; usar TTS via speak()
   const [error, setError] = useState<string | null>(null);
   const [faceReady, setFaceReady] = useState(false);
   const [faceDetected, setFaceDetected] = useState(false);
@@ -64,64 +71,130 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
   const progressTimerRef = useRef<number | null>(null);
   const farFramesRef = useRef(0);
   const nearFramesRef = useRef(0);
+  // Clave para forzar remount de la cámara al reingresar a la pestaña
+  const [camKey, setCamKey] = useState<number>(0);
 
   // Tabs & roles
   const [activeTab, setActiveTab] = useState<'perfil' | 'rostro' | 'usuarios'>('perfil');
   const [currentUser, setCurrentUserState] = useState<User | null>(null);
 
   // Users CRUD state (admin only)
-  const [usersList, setUsersList] = useState<User[]>([]);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [uName, setUName] = useState('');
-  const [uEmail, setUEmail] = useState('');
-  const [uRole, setURole] = useState<UserRole>('Usuario');
-  const [uStatus, setUStatus] = useState<UserStatus>('Activo');
+  const [usersList, setUsersList] = useState<BackendUser[]>([]);
+  const [rolesVersion, setRolesVersion] = useState(0); // para refrescar tras cambiar permisos
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<{username: string; email: string; dni?: string | null}>({ username: '', email: '', dni: '' });
+  const [permModalOpen, setPermModalOpen] = useState(false);
+  const [permTarget, setPermTarget] = useState<BackendUser | null>(null);
 
   useEffect(() => {
     try {
       const cu = getCurrentUser();
       setCurrentUserState(cu);
-      setUsersList(getUsers());
     } catch {}
   }, [isOpen]);
 
-  const resetUForm = () => {
-    setEditingUser(null);
-    setUName('');
-    setUEmail('');
-    setURole('Usuario');
-    setUStatus('Activo');
+  useEffect(() => {
+    let cancelled = false;
+    if (isOpen && activeTab === 'usuarios' && (isAdmin(currentUser) || isCEO(currentUser))) {
+      fetchUsersForManagement()
+        .then(list => {
+          if (cancelled) return;
+          // Si aparece 'Edu', asegurar persistencia como CEO
+          try {
+            list.forEach(u => {
+              const nameLc = (u.username || '').trim().toLowerCase();
+              if (nameLc === 'edu' || nameLc === 'eduard') { grantCEOByEmail(u.email); }
+            });
+          } catch {}
+          setUsersList(list);
+          setRolesVersion(v=>v+1);
+        })
+        .catch(() => { if (!cancelled) setUsersList([]); });
+    }
+    return () => { cancelled = true; };
+  }, [isOpen, activeTab]);
+
+  // Forzar pestaña Perfil para usuarios sin permisos
+  useEffect(() => {
+    if (!(isAdmin(currentUser) || isCEO(currentUser)) && activeTab !== 'perfil') {
+      setActiveTab('perfil');
+    }
+  }, [currentUser, activeTab]);
+
+  const removeUser = async (username: string) => {
+    if (!(isAdmin(currentUser) || isCEO(currentUser))) return;
+    try {
+      await deleteBackendUserByUsername(username);
+      setUsersList(prev => prev.filter(u => u.username !== username));
+    } catch {}
   };
 
-  const startEditUser = (u: User) => {
-    setEditingUser(u);
-    setUName(u.name);
-    setUEmail(u.email);
-    setURole(u.role);
-    setUStatus(u.status);
+  const beginEdit = (u: BackendUser) => {
+    if (!(isAdmin(currentUser) || isCEO(currentUser))) return;
+    setEditingId(u.id);
+    setEditForm({ username: u.username, email: u.email, dni: u.dni ?? '' });
   };
-
-  const saveUser = () => {
-    if (!isAdmin(currentUser)) return; // permisos
-    const name = uName.trim();
-    const email = uEmail.trim();
-    if (!name || !email) return;
-    if (editingUser) {
-      const updated = updateUserSrv(editingUser.id, { name, email, role: uRole, status: uStatus });
-      setUsersList(prev => prev.map(x => (x.id === updated.id ? updated : x)));
-      resetUForm();
-    } else {
-      const created = createUser({ name, email, role: uRole, status: uStatus });
-      setUsersList(prev => [...prev, created]);
-      resetUForm();
+  const cancelEdit = () => { setEditingId(null); };
+  const saveEdit = async (u: BackendUser) => {
+    if (!(isAdmin(currentUser) || isCEO(currentUser))) return;
+    try {
+      await updateBackendUser(u.id, { username: editForm.username, email: editForm.email, dni: (editForm.dni ?? undefined) });
+      setUsersList(prev => prev.map(it => it.id === u.id ? { ...it, username: editForm.username, email: editForm.email, dni: editForm.dni || null } : it));
+      setEditingId(null);
+    } catch (e) {
+      // opcional: mostrar error
     }
   };
 
-  const removeUser = (id: number) => {
-    if (!isAdmin(currentUser)) return;
-    deleteUserSrv(id);
-    setUsersList(getUsers());
-    if (editingUser?.id === id) resetUForm();
+  const getDisplayRole = useCallback((u: BackendUser): string => {
+    const nameLc = (u.username || '').trim().toLowerCase();
+    // Regla dura: 'Edu' es CEO aunque la persistencia diga otra cosa
+    if (nameLc === 'edu' || nameLc === 'eduard') return 'CEO';
+    const persisted = getRoleByEmail(u.email);
+    if (persisted) return persisted;
+    return 'Usuario';
+  }, [rolesVersion]);
+
+
+  // Abrir modal de permisos avanzados
+  const openPermModal = (u: BackendUser) => {
+    setPermTarget(u);
+    setPermModalOpen(true);
+  };
+  const closePermModal = () => { setPermModalOpen(false); setPermTarget(null); };
+
+  // Acciones dentro del modal
+  const applyMakeCEO = () => {
+    if (!permTarget) return;
+    if (!isCEO(currentUser)) return; // solo CEO puede
+    if (currentUser?.email === permTarget.email) return; // evitar auto-cambio opcional
+    try { grantCEOByEmail(permTarget.email); setRolesVersion(v=>v+1); } catch {}
+    closePermModal();
+  };
+  const applyMakeAdmin = () => {
+    if (!permTarget) return;
+    // CEO y Admin pueden dar admin; Admin no puede tocar CEO ni admins existentes
+    const role = getDisplayRole(permTarget);
+    if (isCEO(currentUser)) {
+      try { grantAdminByEmail(permTarget.email); setRolesVersion(v=>v+1); } catch {}
+      closePermModal();
+      return;
+    }
+    if (isAdmin(currentUser)) {
+      if (role === 'CEO' || role === 'Administrador') return; // restricciones
+      try { grantAdminByEmail(permTarget.email); setRolesVersion(v=>v+1); } catch {}
+      closePermModal();
+    }
+  };
+  const applyMakeUser = () => {
+    if (!permTarget) return;
+    // CEO puede devolver a Usuario; Admin no
+    if (!isCEO(currentUser)) return;
+    if (currentUser?.email === permTarget.email) return; // no auto-degradarse
+    try { revokeAdminByEmail(permTarget.email); } catch {}
+    try { revokeCEOByEmail(permTarget.email); } catch {}
+    setRolesVersion(v=>v+1);
+    closePermModal();
   };
 
   const canSubmit = useMemo(() => !!name.trim() && !!email.trim(), [name, email]);
@@ -165,18 +238,17 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
     setTimeout(() => setProgress(0), 700);
   }, []);
 
-  // Inicializar FaceMesh como en FacialRegister
+  // Inicializar FaceMesh optimizado (precarga y polling rápido)
+  // Se re-inicializa cada vez que se entra a la pestaña 'rostro' (camKey cambia)
   useEffect(() => {
+    if (activeTab !== 'rostro') return;
     let camera: any;
     let faceMesh: any;
     let running = true;
 
     async function init() {
       try {
-        const [fm, { Camera }] = await Promise.all([
-          import('@mediapipe/face_mesh'),
-          import('@mediapipe/camera_utils'),
-        ]);
+        const [fm, { Camera }] = await FACE_MESH_IMPORT;
 
         const { FaceMesh, FACEMESH_TESSELATION } = fm as any;
 
@@ -219,7 +291,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                 const dx = (L.x - R.x);
                 const dy = (L.y - R.y);
                 const dist = Math.hypot(dx, dy);
-                const FAR_THRESHOLD = 0.12;
+                const FAR_THRESHOLD = 0.16; // más sensible
                 const rawFar = dist < FAR_THRESHOLD;
                 if (rawFar) {
                   farFramesRef.current = Math.min(farFramesRef.current + 1, 10);
@@ -229,17 +301,19 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                   farFramesRef.current = 0;
                 }
                 if (farRef.current) {
-                  isFar = !(nearFramesRef.current >= 3);
+                  // volver a cerca requiere 4 frames cerca
+                  isFar = !(nearFramesRef.current >= 4);
                 } else {
-                  isFar = farFramesRef.current >= 3;
+                  // pasar a lejos requiere 4 frames lejos
+                  isFar = farFramesRef.current >= 4;
                 }
               }
             } catch {}
             farRef.current = isFar;
 
             // Dibujo de malla (tesselation) y puntos
-            let color = '#22c55e';
-            if (farRef.current) color = '#EC4899';
+            // Mantener rosa mientras realmente estés lejos
+            const color = farRef.current ? '#EC4899' : '#22c55e';
             const w = canvasEl.width;
             const h = canvasEl.height;
 
@@ -315,7 +389,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
         clearInterval(waitForVideo);
         init();
       }
-    }, 200);
+    }, 100);
 
     // Watchdog
     const watchdog = window.setInterval(() => {
@@ -348,45 +422,62 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
       window.removeEventListener('visibilitychange', onVisibleOrFocus);
       window.removeEventListener('focus', onVisibleOrFocus);
     };
-  }, []);
+  }, [activeTab, camKey]);
+
+  // Reiniciar/Detener cámara al cambiar de pestaña
+  useEffect(() => {
+    const videoEl = (webcamRef.current as any)?.video as HTMLVideoElement | undefined;
+    if (activeTab === 'rostro') {
+      // Forzar remount para asegurar nuevo videoEl y re-init del pipeline
+      setCamKey((k) => k + 1);
+      // Si hay cámara instanciada (de una sesión previa), intentar arrancarla
+      try { if (cameraRef.current && cameraRef.current.start) cameraRef.current.start(); } catch {}
+      try { if (videoEl && faceMeshRef.current) faceMeshRef.current.send({ image: videoEl }); } catch {}
+    } else {
+      // Al salir, detener cámara para liberar y evitar estados zombies
+      try { cameraRef.current && cameraRef.current.stop && cameraRef.current.stop(); } catch {}
+      // Resetear estados para asegurar re-init limpio al volver
+      setFaceReady(false);
+      setFaceDetected(false);
+      setFaceStable(false);
+      stableCounterRef.current = 0;
+      farRef.current = false;
+      try { faceMeshRef.current = null; } catch {}
+      try { cameraRef.current = null; } catch {}
+    }
+  }, [activeTab]);
 
   const handleRegister = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      setMessage(null);
       // Barra de progreso como FacialRegister
       animateProgressTo(35, 1500);
-      const face_image = captureDataURL();
-      // Usamos "name" como username para el backend de auth
-      const payload: { username: string; face_image: string; dni?: string; email?: string } = {
+      const dataUrl = captureDataURL();
+
+      // Registrar y guardar snapshot/avatar mediante userService
+      const payload: Parameters<typeof registerWithSnapshot>[0] = {
         username: name.trim(),
-        face_image,
+        dataUrl,
+        ...(dni.trim() ? { dni: dni.trim() } : {}),
+        ...(email.trim() ? { email: email.trim() } : {}),
       };
-      const dniTrim = dni.trim();
-      const emailTrim = email.trim();
-      if (dniTrim) payload.dni = dniTrim;
-      if (emailTrim) payload.email = emailTrim;
-      const res = await registerUser(payload);
-      setMessage('Registro exitoso. Iniciando sesión...');
-      animateProgressTo(70, 1200);
-      const { access_token } = await loginFace({ face_image });
+      await registerWithSnapshot(payload);
+
+      // Actualizar usuario actual en el modal inmediatamente
+      const cu = getCurrentUserSrv();
+      setCurrentUserState(cu);
+
+      // Quitar mensaje visual de éxito; mantener TTS si está disponible
+      try { speak(`Gracias por registrarte ${name.trim()}`); } catch {}
       animateProgressTo(95, 800);
       finishProgress();
-      try { localStorage.setItem('access_token', access_token); } catch {}
-      try { localStorage.setItem('username', res?.username || name.trim()); } catch {}
-      // Opcional: cerrar modal y refrescar dashboard
-      setTimeout(() => {
-        onClose();
-        window.location.reload();
-      }, 500);
     } catch (e: any) {
-      setMessage(null);
       setError(e?.message || 'Error al registrar');
     } finally {
       setLoading(false);
     }
-  }, [name, dni, email, captureDataURL, onClose]);
+  }, [name, dni, email, captureDataURL]);
 
   return (
     <AppModal
@@ -403,27 +494,32 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
         >
           Perfil
         </button>
-        <button
-          className={`px-3 py-2 rounded-md text-sm ${activeTab === 'rostro' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
-          onClick={() => setActiveTab('rostro')}
-        >
-          Registrar/Actualizar rostro
-        </button>
-        <button
-          className={`px-3 py-2 rounded-md text-sm ${activeTab === 'usuarios' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
-          onClick={() => setActiveTab('usuarios')}
-        >
-          Gestión de usuarios
-        </button>
+        {(isAdmin(currentUser) || isCEO(currentUser)) && (
+          <>
+            <button
+              className={`px-3 py-2 rounded-md text-sm ${activeTab === 'rostro' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+              onClick={() => setActiveTab('rostro')}
+            >
+              Registrar/Actualizar rostro
+            </button>
+            <button
+              className={`px-3 py-2 rounded-md text-sm ${activeTab === 'usuarios' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+              onClick={() => setActiveTab('usuarios')}
+            >
+              Gestión de usuarios
+            </button>
+          </>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4 px-2 md:px-4">
+      <div className={`${activeTab === 'perfil' || activeTab === 'usuarios' ? 'grid grid-cols-1' : 'grid grid-cols-1 md:grid-cols-2'} gap-6 py-4 px-2 md:px-4`}>
         {/* Columna izquierda */}
         <div className="flex flex-col items-center">
-          {activeTab === 'rostro' ? (
+          {activeTab === 'rostro' && (isAdmin(currentUser) || isCEO(currentUser)) ? (
             <>
               <div className="relative w-full rounded-lg overflow-hidden bg-black/70" style={{ aspectRatio: '4 / 3' }}>
                 <Webcam
+                  key={camKey}
                   ref={webcamRef}
                   audio={false}
                   screenshotFormat="image/jpeg"
@@ -431,13 +527,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                   className="w-full h-full object-cover"
                   videoConstraints={videoConstraints}
                 />
-                <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+                <canvas key={`c-${camKey}`} ref={canvasRef} className="absolute inset-0 w-full h-full" />
               </div>
-              <div className="w-full mt-3 text-sm text-gray-700 dark:text-gray-300">
-                {!faceReady && <span>Inicializando modelo facial...</span>}
-                {faceReady && !faceDetected && <span>No se detecta rostro</span>}
-                {faceReady && faceDetected && !faceStable && <span>Estabilizando...</span>}
-                {faceReady && faceStable && !farRef.current && <span>Rostro listo</span>}
+              <div className="w-full mt-3 text-sm">
+                {!faceReady && <span className="text-gray-400">Inicializando modelo facial...</span>}
+                {faceReady && !faceDetected && <span className="text-yellow-500">No se detecta rostro</span>}
+                {faceReady && faceDetected && !faceStable && <span className="text-green-500">Estabilizando...</span>}
+                {faceReady && faceStable && !farRef.current && <span className="text-green-500">Rostro listo</span>}
                 {faceReady && faceStable && farRef.current && <span className="text-pink-400">Acércate un poco (muy lejos)</span>}
               </div>
               {loading && (
@@ -450,20 +546,18 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
               )}
             </>
           ) : activeTab === 'perfil' ? (
-            <div className="w-full p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+            <div className="w-full max-w-md mx-auto p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
+              {/* Centro: imagen grande, luego nombre y correo, y nota de administrador */}
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-40 h-40 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden">
                   {currentUser?.avatar ? (
-                    <img src={currentUser.avatar} alt="avatar" className="h-full w-full object-cover" />
+                    <img src={currentUser.avatar} alt="avatar" className="w-full h-full object-cover" />
                   ) : null}
                 </div>
-                <div>
-                  <div className="text-lg font-semibold">{currentUser?.name || '—'}</div>
-                  <div className="text-sm text-gray-600 dark:text-gray-300">{currentUser?.email || '—'}</div>
-                  <div className="text-xs mt-1">
-                    <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700">{currentUser?.role}</span> ·{' '}
-                    <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700">{currentUser?.status}</span>
-                  </div>
+                <div className="text-lg font-semibold text-center">{currentUser?.name || '—'}</div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 text-center">{currentUser?.email || '—'}</div>
+                <div className="text-xs text-center text-gray-500 mt-2">
+                  Solo un Administrador puede cambiar roles y crear usuarios.
                 </div>
               </div>
               {onLogout && (
@@ -472,16 +566,12 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                 </button>
               )}
             </div>
-          ) : (
-            <div className="w-full p-4 text-sm text-gray-600 dark:text-gray-300">
-              Gestiona usuarios a la derecha. Solo Administrador puede crear/editar/eliminar.
-            </div>
-          )}
+          ) : null}
         </div>
 
         {/* Columna derecha */}
         <div className="flex flex-col space-y-4">
-          {activeTab === 'rostro' && (
+          {activeTab === 'rostro' && isAdmin(currentUser) && (
             <div>
               <h4 className="text-lg font-semibold">Registrar/Actualizar rostro</h4>
 
@@ -526,9 +616,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                   >
                     {loading ? 'Procesando…' : 'Registrar Usuario'}
                   </button>
-                  {message && (
-                    <div className="text-sm text-green-600 dark:text-green-400">{message}</div>
-                  )}
+                  {/* Mensaje visual de éxito eliminado */}
                   {error && (
                     <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
                   )}
@@ -537,34 +625,14 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
             </div>
           )}
 
-          {activeTab === 'perfil' && (
-            <div className="space-y-2 text-sm">
-              <div><b>Nombre:</b> {currentUser?.name || '—'}</div>
-              <div><b>Correo:</b> {currentUser?.email || '—'}</div>
-              <div><b>Rol:</b> {currentUser?.role || '—'}</div>
-              <div><b>Estado:</b> {currentUser?.status || '—'}</div>
-              <div className="text-xs text-gray-500">Solo un Administrador puede cambiar roles y crear usuarios.</div>
-            </div>
-          )}
+          {activeTab === 'perfil' && null}
 
-          {activeTab === 'usuarios' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+          {activeTab === 'usuarios' && (isAdmin(currentUser) || isCEO(currentUser)) && (
+            <div className="space-y-4 max-w-2xl mx-auto w-full">
+              <div className="flex items-center justify-center">
                 <h4 className="text-lg font-semibold">Gestión de usuarios</h4>
-                {!isAdmin(currentUser) && <span className="text-xs text-gray-500">Solo lectura (no eres Administrador)</span>}
               </div>
-              {/* Form */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border rounded-md border-gray-300 dark:border-gray-700">
-                <label className="text-sm">Nombre<input className="mt-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800" value={uName} onChange={e=>setUName(e.target.value)} disabled={!isAdmin(currentUser)} /></label>
-                <label className="text-sm">Correo<input className="mt-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800" value={uEmail} onChange={e=>setUEmail(e.target.value)} disabled={!isAdmin(currentUser)} /></label>
-                <label className="text-sm">Rol<select className="mt-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800" value={uRole} onChange={e=>setURole(e.target.value as UserRole)} disabled={!isAdmin(currentUser)}>{USER_ROLES.map(r=> <option key={r} value={r}>{r}</option>)}</select></label>
-                <label className="text-sm">Estado<select className="mt-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800" value={uStatus} onChange={e=>setUStatus(e.target.value as UserStatus)} disabled={!isAdmin(currentUser)}>{USER_STATUSES.map(s=> <option key={s} value={s}>{s}</option>)}</select></label>
-                <div className="md:col-span-2 flex gap-2 pt-1">
-                  <button className="px-3 py-2 rounded-md bg-blue-600 text-white disabled:opacity-60" onClick={saveUser} disabled={!isAdmin(currentUser)}>{editingUser? 'Guardar cambios':'Crear usuario'}</button>
-                  {editingUser && <button className="px-3 py-2 rounded-md bg-gray-200 dark:bg-gray-700" onClick={resetUForm} disabled={!isAdmin(currentUser)}>Cancelar</button>}
-                </div>
-              </div>
-              {/* Tabla */}
+              {/* Tabla (solo lectura desde user.db). Sin formulario de creación. */}
               <div className="overflow-auto border border-gray-300 dark:border-gray-700 rounded-md">
                 <table className="min-w-full text-sm">
                   <thead className="bg-gray-100 dark:bg-gray-700">
@@ -572,27 +640,150 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                       <th className="text-left p-2">ID</th>
                       <th className="text-left p-2">Nombre</th>
                       <th className="text-left p-2">Correo</th>
+                      <th className="text-left p-2">DNI</th>
                       <th className="text-left p-2">Rol</th>
-                      <th className="text-left p-2">Estado</th>
+                      <th className="text-left p-2">Permisos avanzados</th>
                       <th className="text-left p-2">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {usersList.map(u => (
-                      <tr key={u.id} className="border-t border-gray-200 dark:border-gray-700">
-                        <td className="p-2">{u.id}</td>
-                        <td className="p-2">{u.name}</td>
-                        <td className="p-2">{u.email}</td>
-                        <td className="p-2">{u.role}</td>
-                        <td className="p-2">{u.status}</td>
-                        <td className="p-2 flex gap-2">
-                          <button className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700" onClick={()=>startEditUser(u)} disabled={!isAdmin(currentUser)}>Editar</button>
-                          <button className="px-2 py-1 rounded bg-red-600 text-white disabled:opacity-60" onClick={()=>removeUser(u.id)} disabled={!isAdmin(currentUser)}>Eliminar</button>
-                        </td>
-                      </tr>
-                    ))}
+                    {usersList.map(u => {
+                      const isEditing = editingId === u.id;
+                      const role = getDisplayRole(u);
+                      return (
+                        <tr key={u.id} className="border-t border-gray-200 dark:border-gray-700">
+                          <td className="p-2">{u.id}</td>
+                          <td className="p-2">
+                            {isEditing ? (
+                              <input
+                                className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                                value={editForm.username}
+                                onChange={(e)=>setEditForm(prev=>({...prev, username: e.target.value}))}
+                              />
+                            ) : (
+                              u.username
+                            )}
+                          </td>
+                          <td className="p-2">
+                            {isEditing ? (
+                              <input
+                                type="email"
+                                className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                                value={editForm.email}
+                                onChange={(e)=>setEditForm(prev=>({...prev, email: e.target.value}))}
+                              />
+                            ) : (
+                              u.email
+                            )}
+                          </td>
+                          <td className="p-2">
+                            {isEditing ? (
+                              <input
+                                className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                                value={editForm.dni ?? ''}
+                                onChange={(e)=>setEditForm(prev=>({...prev, dni: e.target.value}))}
+                              />
+                            ) : (
+                              u.dni ?? '—'
+                            )}
+                          </td>
+                          <td className="p-2">{role}</td>
+                          <td className="p-2">
+                            {(isAdmin(currentUser) || isCEO(currentUser)) ? (
+                              <button
+                                className="px-2 py-1 rounded bg-indigo-600 text-white"
+                                onClick={()=>openPermModal(u)}
+                              >Gestionar</button>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="p-2 flex gap-2">
+                            {(isAdmin(currentUser) || isCEO(currentUser)) ? (
+                              isEditing ? (
+                                <>
+                                  <button
+                                    className="px-2 py-1 rounded bg-green-600 text-white disabled:opacity-60"
+                                    onClick={()=>saveEdit(u)}
+                                  >Guardar</button>
+                                  <button
+                                    className="px-2 py-1 rounded bg-gray-500 text-white"
+                                    onClick={cancelEdit}
+                                  >Cancelar</button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    className="px-2 py-1 rounded bg-yellow-600 text-white"
+                                    onClick={()=>beginEdit(u)}
+                                  >Editar</button>
+                                  <button
+                                    className="px-2 py-1 rounded bg-red-600 text-white"
+                                    onClick={()=>removeUser(u.username)}
+                                  >Eliminar</button>
+                                </>
+                              )
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Permisos Avanzados */}
+          {permModalOpen && permTarget && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg p-4 shadow-xl border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="font-semibold text-lg">Gestionar permisos</h5>
+                  <button className="text-sm px-2 py-1 rounded bg-gray-200 dark:bg-gray-700" onClick={closePermModal}>Cerrar</button>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                  Usuario: <b>{permTarget.username}</b> — <span className="ml-1">{permTarget.email}</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="p-3 rounded border border-gray-200 dark:border-gray-700">
+                    <div className="font-medium mb-2">Asignar rol</div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50"
+                        onClick={applyMakeAdmin}
+                        disabled={
+                          (permTarget && ((permTarget.username||'').trim().toLowerCase() === 'eduard')) ||
+                          (getDisplayRole(permTarget) === 'Administrador') ||
+                          (currentUser?.email === permTarget.email)
+                        }
+                      >Hacer Administrador</button>
+                      <button
+                        className="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-50"
+                        onClick={applyMakeCEO}
+                        disabled={!isCEO(currentUser) || (currentUser?.email === permTarget.email) || ((permTarget.username||'').trim().toLowerCase() === 'eduard') || (getDisplayRole(permTarget) === 'CEO')}
+                      >Hacer CEO</button>
+                      <button
+                        className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50"
+                        onClick={applyMakeUser}
+                        disabled={!isCEO(currentUser) || (currentUser?.email === permTarget.email) || ((permTarget.username||'').trim().toLowerCase() === 'eduard') || (getDisplayRole(permTarget) === 'Usuario')}
+                      >Volver a Usuario</button>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      {isCEO(currentUser) ? (
+                        <>
+                          El CEO puede asignar y quitar cualquier rol (salvo a sí mismo).
+                        </>
+                      ) : (
+                        <>
+                          Un Administrador solo puede conceder rol de Administrador a usuarios. No puede quitarlo ni tocar roles CEO.
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

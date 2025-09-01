@@ -3,16 +3,30 @@ import Webcam from 'react-webcam';
 import './FacialLogin.css';
 import { loginFace, me } from '@/services/auth';
 import { speak } from '@/utils/tts';
+import { registerWithSnapshot, saveFaceSnapshot, setCurrentUserFromBackendProfile } from '@/services/userService';
 
 const videoConstraints = { width: 640, height: 480, facingMode: 'user' };
+
+// Precarga de MediaPipe en paralelo a la inicialización del video
+const FACE_MESH_IMPORT = Promise.all([
+  import('@mediapipe/face_mesh'),
+  import('@mediapipe/camera_utils'),
+]);
 
 const FacialLogin: React.FC = () => {
   const webcamRef = useRef<Webcam | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // login loading
   const [progress, setProgress] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Temp register form state
+  const [regName, setRegName] = useState<string>('');
+  const [regDni, setRegDni] = useState<string>('');
+  const [regEmail, setRegEmail] = useState<string>('');
+  const [regLoading, setRegLoading] = useState<boolean>(false);
+  const [regError, setRegError] = useState<string | null>(null);
+
   const [faceReady, setFaceReady] = useState(false); // FaceMesh cargado
   const [faceDetected, setFaceDetected] = useState(false);
   const [faceStable, setFaceStable] = useState(false);
@@ -31,6 +45,9 @@ const FacialLogin: React.FC = () => {
   const lastDrawAtRef = useRef<number>(0);
   const farFramesRef = useRef(0);
   const nearFramesRef = useRef(0);
+  const lastLoginShotRef = useRef<string | null>(null);
+  // Controlar rojo temporal cuando no hay coincidencias
+  const [noMatchUntilTs, setNoMatchUntilTs] = useState<number>(0);
 
   // Componente de LOGIN únicamente
 
@@ -89,10 +106,7 @@ const FacialLogin: React.FC = () => {
 
     async function init() {
       try {
-        const [fm, { Camera }] = await Promise.all([
-          import('@mediapipe/face_mesh'),
-          import('@mediapipe/camera_utils'),
-        ]);
+        const [fm, { Camera }] = await FACE_MESH_IMPORT;
 
         const { FaceMesh, FACEMESH_TESSELATION } = fm as any;
 
@@ -126,8 +140,8 @@ const FacialLogin: React.FC = () => {
             stableCounterRef.current = Math.min(stableCounterRef.current + 1, 9999);
             if (stableCounterRef.current > 3) setFaceStable(true); // umbral más rápido para habilitar acciones
 
-            // Calcular "lejanía" aproximada usando distancia interocular (landmarks 33 y 263)
-            // Histéresis: exigir 3 frames consecutivos para cambiar de estado
+            // Calcular "lejanía" usando distancia interocular (landmarks 33 y 263)
+            // Histéresis: exigir 4 frames consecutivos para cambiar de estado
             let isFar = false;
             try {
               const L = landmarks[33];
@@ -136,7 +150,7 @@ const FacialLogin: React.FC = () => {
                 const dx = (L.x - R.x);
                 const dy = (L.y - R.y);
                 const dist = Math.hypot(dx, dy); // ~proporcional al tamaño de rostro
-                const FAR_THRESHOLD = 0.12; // umbral más sensible para detectar "lejos"
+                const FAR_THRESHOLD = 0.16; // más sensible (valor mayor => detecta "lejos" antes)
                 const rawFar = dist < FAR_THRESHOLD;
                 if (rawFar) {
                   farFramesRef.current = Math.min(farFramesRef.current + 1, 10);
@@ -146,21 +160,22 @@ const FacialLogin: React.FC = () => {
                   farFramesRef.current = 0;
                 }
                 if (farRef.current) {
-                  // Para volver a "cerca" requerimos 3 frames cerca
-                  if (nearFramesRef.current >= 3) isFar = false; else isFar = true;
+                  // Para volver a "cerca" requerimos 4 frames cerca
+                  if (nearFramesRef.current >= 4) isFar = false; else isFar = true;
                 } else {
-                  // Para pasar a "lejos" requerimos 3 frames lejos
-                  if (farFramesRef.current >= 3) isFar = true; else isFar = false;
+                  // Para pasar a "lejos" requerimos 4 frames lejos
+                  if (farFramesRef.current >= 4) isFar = true; else isFar = false;
                 }
               }
             } catch {}
             farRef.current = isFar;
 
             // Dibujo de malla (tesselation) y puntos
-            // Color con prioridad: rojo (no_match) > rosa (lejos) > fases (login) > verde
+            // Color con prioridad con rojo temporal: no_match (<=2s) > rosa (lejos) > fases (login) > verde
             let color = '#22c55e'; // verde por defecto
-            if (phaseRef.current === 'no_match') {
-              color = '#EF4444'; // rojo
+            const nowTs = Date.now();
+            if (phaseRef.current === 'no_match' && nowTs < noMatchUntilTs) {
+              color = '#EF4444'; // rojo temporal
             } else if (farRef.current) {
               color = '#EC4899'; // rosa
             } else if (attemptActiveRef.current) {
@@ -244,7 +259,7 @@ const FacialLogin: React.FC = () => {
         clearInterval(waitForVideo);
         init();
       }
-    }, 200);
+    }, 100);
 
     // Watchdog: si no se dibuja por >2s y el video está listo, intentamos relanzar frame
     const watchdog = window.setInterval(() => {
@@ -283,7 +298,47 @@ const FacialLogin: React.FC = () => {
     };
   }, []);
 
-  // Sin handleRegister: este componente es solo para login
+  // Registro temporal dentro de la pantalla de login (usa el mismo flujo/snapshot)
+  const handleTempRegister = useCallback(async () => {
+    try {
+      setRegLoading(true);
+      setRegError(null);
+      const dataUrl = captureDataURL();
+      const payload = {
+        username: regName.trim(),
+        dataUrl,
+        ...(regDni.trim() ? { dni: regDni.trim() } : {}),
+        ...(regEmail.trim() ? { email: regEmail.trim() } : {}),
+      } as Parameters<typeof registerWithSnapshot>[0];
+      await registerWithSnapshot(payload);
+      // Tras registrar, iniciar sesión facial automáticamente con el mismo snapshot
+      let token: string | null = null;
+      try {
+        const { access_token } = await loginFace({ face_image: dataUrl });
+        token = access_token as string;
+      } catch (e) {
+        // Si fallara por latencia de hash, reintentar una vez tras breve espera
+        await new Promise((r) => setTimeout(r, 300));
+        const { access_token } = await loginFace({ face_image: dataUrl });
+        token = access_token as string;
+      }
+      if (token) {
+        try { speak(`Gracias por registrarte ${regName.trim()}`); } catch {}
+        // Opcional: obtener username real del backend para saludo
+        try {
+          const meData = await me(token);
+          if (meData?.username) {
+            try { localStorage.setItem('username', meData.username); } catch {}
+          }
+        } catch {}
+        afterLoginSuccess(token);
+      }
+    } catch (e: any) {
+      setRegError(e?.message || 'Error al registrar');
+    } finally {
+      setRegLoading(false);
+    }
+  }, [regName, regDni, regEmail, captureDataURL]);
 
   const handleLogin = async () => {
     try {
@@ -318,6 +373,7 @@ const FacialLogin: React.FC = () => {
       // Reintentos automáticos: hasta 3 capturas secuenciales
       const tryOnce = async () => {
         const face_image = captureDataURL();
+        lastLoginShotRef.current = face_image;
         console.log('Attempting facial login with image length:', face_image.length);
         const { access_token } = await loginFace({ face_image });
         return access_token as string;
@@ -339,12 +395,20 @@ const FacialLogin: React.FC = () => {
         console.error('All login attempts failed:', lastErr);
         throw lastErr || new Error('No se pudo autenticar');
       }
-      // Obtener username y anunciar TTS
+      // Obtener username/email, anunciar TTS y guardar snapshot como avatar local
       try {
         const meData = await me(access_token);
         if (meData?.username) {
           try { localStorage.setItem('username', meData.username); } catch {}
           speak(`Bienvenido, ${meData.username}`);
+        }
+        // Sincronizar currentUser local con el perfil del backend (separa perfiles correctamente)
+        if (meData?.email) {
+          const avatarDataUrl = lastLoginShotRef.current || null;
+          setCurrentUserFromBackendProfile({ username: meData?.username, email: meData.email, avatarDataUrl });
+          if (avatarDataUrl) {
+            try { saveFaceSnapshot({ email: meData.email, dataUrl: avatarDataUrl, type: 'login', name: meData?.username }); } catch {}
+          }
         }
       } catch {}
       clearProgressTimer();
@@ -362,6 +426,14 @@ const FacialLogin: React.FC = () => {
       setError(null);
       setMsg(null);
       setPhase('no_match');
+      // Activar rojo por 2s y luego volver a estado base
+      const until = Date.now() + 2000;
+      setNoMatchUntilTs(until);
+      const t = window.setTimeout(() => {
+        // Al vencer el rojo, si no hay otro intento, volvemos a idle
+        if (phaseRef.current === 'no_match') setPhase('idle');
+      }, 2000);
+      timersRef.current.push(t);
       sayOnce('no_match', 'Sin registros', 800);
       attemptActiveRef.current = false;
     } finally {
@@ -422,10 +494,10 @@ const FacialLogin: React.FC = () => {
             )}
             {!loading && (
               <div className="fl-status">
-                {!faceReady && <span>Inicializando modelo facial...</span>}
-                {faceReady && !faceDetected && <span>No se detecta rostro</span>}
-                {faceReady && faceDetected && !faceStable && <span>Estabilizando...</span>}
-                {faceReady && faceStable && !farRef.current && <span>Rostro listo</span>}
+                {!faceReady && <span style={{color:'#9CA3AF'}}>Inicializando modelo facial...</span>}
+                {faceReady && !faceDetected && <span style={{color:'#F59E0B'}}>No se detecta rostro</span>}
+                {faceReady && faceDetected && !faceStable && <span style={{color:'#22C55E'}}>Estabilizando...</span>}
+                {faceReady && faceStable && !farRef.current && <span style={{color:'#22C55E'}}>Rostro listo</span>}
                 {faceReady && faceStable && farRef.current && <span style={{color:'#EC4899'}}>Acércate un poco (muy lejos)</span>}
               </div>
             )}
@@ -460,6 +532,51 @@ const FacialLogin: React.FC = () => {
 
             {msg && <div className="fl-msg ok">{msg}</div>}
             {error && <div className="fl-msg err">{error}</div>}
+
+            {/* --- Registro temporal (usa el mismo snapshot) --- */}
+            <div className="fl-temp-register" style={{marginTop: '1.25rem'}}>
+              <div className="fl-instructions-title" style={{marginBottom: '0.5rem'}}>¿Aún no tienes cuenta? Regístrate (temporal)</div>
+              <div className="fl-temp-grid" style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.5rem'}}>
+                <div style={{gridColumn:'1 / span 1'}}>
+                  <label className="fl-label">Nombre</label>
+                  <input
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    className="fl-input"
+                    placeholder="Tu nombre"
+                  />
+                </div>
+                <div style={{gridColumn:'2 / span 1'}}>
+                  <label className="fl-label">DNI</label>
+                  <input
+                    value={regDni}
+                    onChange={(e) => setRegDni(e.target.value)}
+                    className="fl-input"
+                    placeholder="Documento"
+                  />
+                </div>
+                <div style={{gridColumn:'1 / span 2'}}>
+                  <label className="fl-label">Correo</label>
+                  <input
+                    type="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="fl-input"
+                    placeholder="correo@dominio.com"
+                  />
+                </div>
+                <div style={{gridColumn:'1 / span 2'}}>
+                  <button
+                    className="fl-btn secondary"
+                    disabled={regLoading || !faceDetected || !regName.trim()}
+                    onClick={handleTempRegister}
+                  >
+                    <span>{regLoading ? 'Registrando...' : 'Registrar Usuario (temporal)'}</span>
+                  </button>
+                </div>
+              </div>
+              {regError && <div className="fl-msg err" style={{marginTop:'0.5rem'}}>{regError}</div>}
+            </div>
           </div>
         </div>
       </div>

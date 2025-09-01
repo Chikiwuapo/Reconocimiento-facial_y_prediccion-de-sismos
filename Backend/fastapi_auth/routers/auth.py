@@ -150,3 +150,40 @@ def me(token: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return user
+
+
+# ====== Edición de usuarios (solo datos básicos) ======
+from pydantic import BaseModel
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    dni: Optional[str] = None
+
+
+@router.put("/users/{user_id}", response_model=schemas.UserOut)
+def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Validaciones de unicidad básicas si cambian email o dni
+    if payload.email and payload.email != user.email:
+        exists_email = db.query(models.User).filter(models.User.email == payload.email).first()
+        if exists_email:
+            raise HTTPException(status_code=400, detail="Email ya está en uso")
+        user.email = payload.email
+
+    if payload.dni and payload.dni != user.dni:
+        exists_dni = db.query(models.User).filter(models.User.dni == payload.dni).first()
+        if exists_dni:
+            raise HTTPException(status_code=400, detail="DNI ya está en uso")
+        user.dni = payload.dni
+
+    if payload.username:
+        user.username = payload.username
+
+    db.commit()
+    db.refresh(user)
+    return user
