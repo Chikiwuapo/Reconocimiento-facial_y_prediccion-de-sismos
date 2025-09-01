@@ -28,11 +28,6 @@ import {
   isAdmin,
   isCEO,
   updateBackendUser,
-  getRoleByEmail,
-  grantAdminByEmail,
-  revokeAdminByEmail,
-  grantCEOByEmail,
-  revokeCEOByEmail,
   type User,
   type BackendUser,
 } from '@/services/userService';
@@ -80,7 +75,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
 
   // Users CRUD state (admin only)
   const [usersList, setUsersList] = useState<BackendUser[]>([]);
-  const [rolesVersion, setRolesVersion] = useState(0); // para refrescar tras cambiar permisos
+  const [rolesVersion, setRolesVersion] = useState(0); // aún usado para forzar refresh tras cambios
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<{username: string; email: string; dni?: string | null}>({ username: '', email: '', dni: '' });
   const [permModalOpen, setPermModalOpen] = useState(false);
@@ -140,11 +136,8 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
   };
 
   const getDisplayRole = useCallback((u: BackendUser): string => {
-    const persisted = getRoleByEmail(u.email);
-    if (persisted) return persisted;
-    return 'Usuario';
+    return (u.role as string) || 'Usuario';
   }, [rolesVersion]);
-
 
   // Abrir modal de permisos avanzados
   const openPermModal = (u: BackendUser) => {
@@ -154,36 +147,40 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
   const closePermModal = () => { setPermModalOpen(false); setPermTarget(null); };
 
   // Acciones dentro del modal
-  const applyMakeCEO = () => {
+  const applyMakeCEO = async () => {
     if (!permTarget) return;
     if (!isCEO(currentUser)) return; // solo CEO puede
     if (currentUser?.email === permTarget.email) return; // evitar auto-cambio opcional
-    try { grantCEOByEmail(permTarget.email); setRolesVersion(v=>v+1); } catch {}
+    try {
+      await updateBackendUser(permTarget.id, { role: 'CEO' });
+      setUsersList(prev => prev.map(x => x.id === permTarget.id ? { ...x, role: 'CEO' } : x));
+      setRolesVersion(v=>v+1);
+    } catch {}
     closePermModal();
   };
-  const applyMakeAdmin = () => {
+
+  const applyMakeAdmin = async () => {
     if (!permTarget) return;
     // CEO y Admin pueden dar admin; Admin no puede tocar CEO ni admins existentes
     const role = getDisplayRole(permTarget);
     if (isCEO(currentUser)) {
-      try { grantAdminByEmail(permTarget.email); setRolesVersion(v=>v+1); } catch {}
+      try { await updateBackendUser(permTarget.id, { role: 'Administrador' }); setUsersList(prev => prev.map(x => x.id === permTarget.id ? { ...x, role: 'Administrador' } : x)); setRolesVersion(v=>v+1); } catch {}
       closePermModal();
       return;
     }
     if (isAdmin(currentUser)) {
       if (role === 'CEO' || role === 'Administrador') return; // restricciones
-      try { grantAdminByEmail(permTarget.email); setRolesVersion(v=>v+1); } catch {}
+      try { await updateBackendUser(permTarget.id, { role: 'Administrador' }); setUsersList(prev => prev.map(x => x.id === permTarget.id ? { ...x, role: 'Administrador' } : x)); setRolesVersion(v=>v+1); } catch {}
       closePermModal();
     }
   };
-  const applyMakeUser = () => {
+
+  const applyMakeUser = async () => {
     if (!permTarget) return;
     // CEO puede devolver a Usuario; Admin no
     if (!isCEO(currentUser)) return;
     if (currentUser?.email === permTarget.email) return; // no auto-degradarse
-    try { revokeAdminByEmail(permTarget.email); } catch {}
-    try { revokeCEOByEmail(permTarget.email); } catch {}
-    setRolesVersion(v=>v+1);
+    try { await updateBackendUser(permTarget.id, { role: 'Usuario' }); setUsersList(prev => prev.map(x => x.id === permTarget.id ? { ...x, role: 'Usuario' } : x)); setRolesVersion(v=>v+1); } catch {}
     closePermModal();
   };
 

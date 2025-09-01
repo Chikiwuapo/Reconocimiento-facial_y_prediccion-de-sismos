@@ -66,6 +66,7 @@ def register_user(
         username=username,
         dni=dni,
         email=email,
+        role='Usuario',
         face_hash=face_hash,
         created_at=created_at_local,
     )
@@ -164,6 +165,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     dni: Optional[str] = None
+    role: Optional[str] = None  # CEO | Administrador | Supervisor | Usuario
 
 
 @router.put("/users/{user_id}", response_model=schemas.UserOut)
@@ -187,6 +189,13 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
 
     if payload.username:
         user.username = payload.username
+
+    # Validar y actualizar rol si se envía
+    if payload.role is not None:
+        valid_roles = {"CEO", "Administrador", "Supervisor", "Usuario"}
+        if payload.role not in valid_roles:
+            raise HTTPException(status_code=400, detail="Rol inválido")
+        user.role = payload.role
 
     db.commit()
     db.refresh(user)

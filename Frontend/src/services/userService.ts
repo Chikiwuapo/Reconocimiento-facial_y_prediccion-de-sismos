@@ -26,46 +26,8 @@ const STORAGE_KEYS = {
   currentUserId: 'app_current_user_id',
 };
 
-// Mapa persistente de roles por email (permite controlar permisos sin tocar DB)
-const ROLE_KEY = 'app_user_roles';
-type RoleStore = Record<string, UserRole>;
-function readRoles(): RoleStore {
-  try {
-    const raw = localStorage.getItem(ROLE_KEY);
-    return raw ? (JSON.parse(raw) as RoleStore) : {};
-  } catch { return {}; }
-}
-function writeRoles(map: RoleStore) { localStorage.setItem(ROLE_KEY, JSON.stringify(map)); }
-export function getRoleByEmail(email?: string | null): UserRole | null {
-  if (!email) return null;
-  const roles = readRoles();
-  return (roles[email] as UserRole) || null;
-}
-export function setRoleByEmail(email: string, role: UserRole): void {
-  const roles = readRoles();
-  roles[email] = role;
-  writeRoles(roles);
-}
-
-export function grantAdminByEmail(email: string): void { setRoleByEmail(email, 'Administrador'); }
-export function revokeAdminByEmail(email: string): void {
-  const roles = readRoles();
-  if (roles[email]) { delete roles[email]; writeRoles(roles); }
-}
-export function grantCEOByEmail(email: string): void { setRoleByEmail(email, 'CEO'); }
-export function revokeCEOByEmail(email: string): void {
-  const roles = readRoles();
-  if (roles[email] === 'CEO') { delete roles[email]; writeRoles(roles); }
-}
-export function getAllRoleMappings(): Array<{ email: string; role: UserRole }>{
-  const roles = readRoles();
-  const out: Array<{ email: string; role: UserRole }> = [];
-  for (const email of Object.keys(roles)) {
-    const role = roles[email];
-    if (role) out.push({ email, role });
-  }
-  return out;
-}
+// Roles ahora provienen del backend (DB). Se eliminan mappings en localStorage.
+export function getRoleByEmail(_email?: string | null): UserRole | null { return null; }
 
 // Visibilidad de secciones según permisos
 export type SectionKey = 'perfil' | 'rostro' | 'usuarios' | 'permisos';
@@ -76,7 +38,7 @@ export function visibleSectionsFor(user?: User | null): SectionKey[] {
 export function canManageUsers(user?: User | null): boolean { return isAdmin(user) || isCEO(user); }
 export function canEditPermissions(user?: User | null): boolean { return isAdmin(user) || isCEO(user); }
 export function isRegularUser(user?: User | null): boolean { return !isAdmin(user) && !isSupervisor(user) && !isCEO(user); }
-export function getCurrentUserRole(): UserRole | null { return getRoleByEmail(getCurrentUser()?.email || null) || (getCurrentUser()?.role ?? null); }
+export function getCurrentUserRole(): UserRole | null { return getCurrentUser()?.role ?? null; }
 
 // Normalizador genérico de errores provenientes del backend
 export function normalizeBackendError(e: any, fallback = 'Error'): string {
@@ -186,7 +148,7 @@ export function updateCurrentUser(payload: Partial<User>): User {
 }
 
 // Sincroniza el usuario local con el perfil del backend tras login exitoso
-export function setCurrentUserFromBackendProfile(p: { username?: string; email: string; avatarDataUrl?: string | null }): User {
+export function setCurrentUserFromBackendProfile(p: { username?: string; email: string; avatarDataUrl?: string | null; role?: UserRole | string | null }): User {
   const email = p.email;
   const username = (p.username || '').trim() || (email.split('@')[0] || 'Usuario');
   const users = readUsers();
@@ -195,44 +157,25 @@ export function setCurrentUserFromBackendProfile(p: { username?: string; email: 
     user = createUser({
       name: username,
       email,
-      role: 'Usuario',
+      role: (p.role as UserRole) || 'Usuario',
       status: 'Activo',
       avatar: p.avatarDataUrl ?? null,
     });
   } else {
-    user = updateUser(user.id, { name: username, avatar: p.avatarDataUrl ?? user.avatar });
+    user = updateUser(user.id, { name: username, avatar: p.avatarDataUrl ?? user.avatar, role: (p.role as UserRole) || user.role });
   }
-  // Si el usuario es "Eduard" o "Leonel" y no tiene rol mapeado aún, promover a CEO para permitir secciones de administración
-  try {
-    const existingRole = getRoleByEmail(email);
-    if (!existingRole) {
-      // Auto-asignaciones predeterminadas de rol (persisten en localStorage)
-      const uname = username;
-      if (uname === 'Eduard' || uname === 'Leonel') {
-        setRoleByEmail(email, 'CEO');
-        // Reflejar también en el objeto local para la UI inmediata
-        try { user = updateUser(user.id, { role: 'CEO' }); } catch {}
-      }
-    }
-  } catch {}
   setCurrentUser(user.id);
   return user;
 }
 
 // Helpers de rol
-export function isAdmin(user?: User | null): boolean {
-  const byRole = (user?.role || '').toString() === 'Administrador' || (getRoleByEmail(user?.email || null) === 'Administrador');
-  return !!byRole;
-}
+export function isAdmin(user?: User | null): boolean { return (user?.role || '').toString() === 'Administrador'; }
 
 export function isSupervisor(user?: User | null): boolean {
   return (user?.role || '').toString() === 'Supervisor';
 }
 
-export function isCEO(user?: User | null): boolean {
-  const byRole = (user?.role || '').toString() === 'CEO' || (getRoleByEmail(user?.email || null) === 'CEO');
-  return !!byRole;
-}
+export function isCEO(user?: User | null): boolean { return (user?.role || '').toString() === 'CEO'; }
 
 // bootstrap eliminado: no crear usuario Admin por defecto ni forzar sesión.
 
@@ -280,6 +223,7 @@ export type BackendUser = {
   username: string;
   email: string;
   dni?: string | null | undefined;
+  role?: UserRole | string; // viene desde backend
   created_at?: string;
 };
 
@@ -292,6 +236,7 @@ export async function fetchUsersForManagement(): Promise<BackendUser[]> {
     username: String(u?.username ?? ''),
     email: String(u?.email ?? ''),
     dni: u?.dni != null ? String(u.dni) : undefined,
+    role: (u?.role ?? 'Usuario') as UserRole,
     created_at: u?.created_at || undefined,
   }));
 }
@@ -306,7 +251,7 @@ export async function deleteBackendUserByUsername(username: string): Promise<voi
   }
 }
 
-export async function updateBackendUser(userId: number, payload: { username?: string; email?: string; dni?: string | undefined }): Promise<BackendUser> {
+export async function updateBackendUser(userId: number, payload: { username?: string; email?: string; dni?: string | undefined; role?: UserRole | string }): Promise<BackendUser> {
   const res = await fetch(`${AUTH_API}/auth/users/${userId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -314,7 +259,7 @@ export async function updateBackendUser(userId: number, payload: { username?: st
   });
   if (!res.ok) throw new Error(await res.text());
   const u = await res.json();
-  return { id: Number(u.id), username: String(u.username), email: String(u.email), dni: u?.dni };
+  return { id: Number(u.id), username: String(u.username), email: String(u.email), dni: u?.dni, role: (u?.role ?? 'Usuario') };
 }
 
 export async function fetchEmailsFromBackend(): Promise<string[]> {
@@ -322,11 +267,11 @@ export async function fetchEmailsFromBackend(): Promise<string[]> {
   return users.map(u => u.email).filter(Boolean);
 }
 
-export async function fetchProfileFromToken(token: string): Promise<{username?: string; email?: string;}> {
+export async function fetchProfileFromToken(token: string): Promise<{username?: string; email?: string; role?: UserRole | string;}> {
   const res = await fetch(`${AUTH_API}/auth/me?token=${encodeURIComponent(token)}`);
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
-  return { username: data?.username, email: data?.email };
+  return { username: data?.username, email: data?.email, role: data?.role };
 }
 
 export function saveFaceSnapshot(params: { email: string; name?: string; dataUrl: string; type: SnapshotType }): void {

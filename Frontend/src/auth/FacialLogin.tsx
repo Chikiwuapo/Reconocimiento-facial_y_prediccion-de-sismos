@@ -359,7 +359,7 @@ const FacialLogin: React.FC = () => {
         // Sincronizar currentUser local con el perfil del backend (separa perfiles correctamente)
         if (meData?.email) {
           const avatarDataUrl = lastLoginShotRef.current || null;
-          setCurrentUserFromBackendProfile({ username: meData?.username, email: meData.email, avatarDataUrl });
+          setCurrentUserFromBackendProfile({ username: meData?.username, email: meData.email, avatarDataUrl, role: meData?.role });
           if (avatarDataUrl) {
             try { saveFaceSnapshot({ email: meData.email, dataUrl: avatarDataUrl, type: 'login', name: meData?.username }); } catch {}
           }
