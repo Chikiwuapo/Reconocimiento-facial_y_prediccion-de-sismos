@@ -202,24 +202,23 @@ export function setCurrentUserFromBackendProfile(p: { username?: string; email: 
   } else {
     user = updateUser(user.id, { name: username, avatar: p.avatarDataUrl ?? user.avatar });
   }
-  // Rol persistente: si es Edu o Eduard -> CEO
-  const nameLc = username.toLowerCase();
-  if (nameLc === 'edu' || nameLc === 'eduard') {
-    try { setRoleByEmail(email, 'CEO'); } catch {}
-    user = updateUser(user.id, { role: 'CEO' });
-  }
+  // Si el usuario es "Eduard" y no tiene rol mapeado aún, promover a CEO para permitir secciones de administración
+  try {
+    const existingRole = getRoleByEmail(email);
+    if (!existingRole && username === 'Eduard') {
+      setRoleByEmail(email, 'CEO');
+      // Opcionalmente reflejar también en el objeto local
+      try { user = updateUser(user.id, { role: 'CEO' }); } catch {}
+    }
+  } catch {}
   setCurrentUser(user.id);
   return user;
 }
 
 // Helpers de rol
 export function isAdmin(user?: User | null): boolean {
-  // Admin si tiene rol explícito o si su nombre es "Eduard"
   const byRole = (user?.role || '').toString() === 'Administrador' || (getRoleByEmail(user?.email || null) === 'Administrador');
-  const nameLc = (user?.name || '').toString().trim().toLowerCase();
-  const byName = nameLc === 'eduard' || nameLc === 'edu';
-  if (byRole || byName) return true;
-  return false;
+  return !!byRole;
 }
 
 export function isSupervisor(user?: User | null): boolean {
@@ -228,32 +227,10 @@ export function isSupervisor(user?: User | null): boolean {
 
 export function isCEO(user?: User | null): boolean {
   const byRole = (user?.role || '').toString() === 'CEO' || (getRoleByEmail(user?.email || null) === 'CEO');
-  const nameLc = (user?.name || '').toString().trim().toLowerCase();
-  const byName = nameLc === 'edu' || nameLc === 'eduard';
-  return !!(byRole || byName);
+  return !!byRole;
 }
 
-(function bootstrap() {
-  const users = readUsers();
-  if (users.length === 0) {
-    const admin = createUser({
-      name: 'Admin',
-      email: 'admin@example.com',
-      role: 'Administrador',
-      status: 'Activo',
-      avatar: null,
-      notifications: true,
-      theme: 'light',
-    });
-    setCurrentUser(admin.id);
-  } else {
-    const current = localStorage.getItem(STORAGE_KEYS.currentUserId);
-    if (!current && users.length > 0) {
-      const firstUser = users[0] as User; // asegurar no undefined
-      setCurrentUser(firstUser.id);
-    }
-  }
-})();
+// bootstrap eliminado: no crear usuario Admin por defecto ni forzar sesión.
 
 // ==== Extensiones para integración con backend/auth y snapshots faciales ====
 
