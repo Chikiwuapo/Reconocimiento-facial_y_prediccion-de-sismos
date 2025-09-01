@@ -1,0 +1,315 @@
+/* Animaciones para los gráficos detallados */
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOutToTop {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+}
+
+.animateIn {
+  animation: slideInFromTop 0.3s ease-out forwards;
+}
+
+.animateOut {
+  animation: slideOutToTop 0.3s ease-out forwards;
+}
+
+/* Estilos para las tarjetas activas */
+.kpiCardActive {
+  transform: scale(1.02);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Transiciones suaves */
+.kpiCard {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpiCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Indicador visual de estado activo */
+.kpiCardActive .kpiIndicator {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.kpiIndicator {
+  opacity: 0.7;
+  transform: scale(0.95);
+  transition: all 0.2s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .kpiCard {
+    transform: none;
+  }
+  
+  .kpiCard:hover {
+    transform: none;
+  }
+  
+  .kpiCardActive {
+    transform: none;
+  }
+}
+
+/* ===== ESTILOS PARA FILTROS ADAPTATIVOS ===== */
+
+/* Contenedor de filtros - Tema Claro */
+.filtersContainerLight {
+  background-color: #f9fafb; /* bg-gray-50 */
+  border-color: #e5e7eb; /* border-gray-200 */
+}
+
+/* Contenedor de filtros - Tema Oscuro */
+.filtersContainerDark {
+  background-color: #1f2937; /* bg-gray-800 */
+  border-color: #374151; /* border-gray-700 */
+}
+
+/* Etiquetas de filtros - Tema Claro */
+.filterLabelLight {
+  color: #374151; /* text-gray-700 */
+}
+
+/* Etiquetas de filtros - Tema Oscuro */
+.filterLabelDark {
+  color: #d1d5db; /* text-gray-300 */
+}
+
+/* Inputs y selects - Tema Claro */
+.filterInputLight {
+  background-color: #ffffff; /* bg-white */
+  border-color: #d1d5db; /* border-gray-300 */
+  color: #111827; /* text-gray-900 */
+}
+
+.filterInputLight::placeholder {
+  color: #9ca3af; /* text-gray-400 */
+}
+
+/* Inputs y selects - Tema Oscuro */
+.filterInputDark {
+  background-color: #374151; /* bg-gray-700 */
+  border-color: #4b5563; /* border-gray-600 */
+  color: #f9fafb; /* text-gray-50 */
+}
+
+.filterInputDark::placeholder {
+  color: #6b7280; /* text-gray-500 */
+}
+
+/* Botón limpiar filtros - Tema Claro */
+.clearButtonLight {
+  background-color: #e5e7eb; /* bg-gray-200 */
+  color: #374151; /* text-gray-700 */
+}
+
+.clearButtonLight:hover {
+  background-color: #d1d5db; /* hover:bg-gray-300 */
+}
+
+/* Botón limpiar filtros - Tema Oscuro */
+.clearButtonDark {
+  background-color: #4b5563; /* bg-gray-600 */
+  color: #f9fafb; /* text-gray-50 */
+}
+
+.clearButtonDark:hover {
+  background-color: #6b7280; /* hover:bg-gray-500 */
+}
+
+/* Texto de filtros activos - Tema Claro */
+.activeFiltersTextLight {
+  color: #4b5563; /* text-gray-600 */
+}
+
+/* Texto de filtros activos - Tema Oscuro */
+.activeFiltersTextDark {
+  color: #9ca3af; /* text-gray-400 */
+}
+
+/* Tags de filtros - Base */
+.filterTag {
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+/* Tags de filtros - Tema Claro */
+.filterTagLight {
+  background-color: #eff6ff; /* bg-blue-50 */
+  color: #1e40af; /* text-blue-800 */
+}
+
+/* Tags de filtros - Tema Oscuro */
+.filterTagDark {
+  background-color: #1e3a8a; /* bg-blue-900 */
+  color: #93c5fd; /* text-blue-300 */
+}
+
+/* Tags específicos por tipo - Tema Claro */
+.filterTagMagnitude {
+  background-color: #eff6ff; /* bg-blue-50 */
+  color: #1e40af; /* text-blue-800 */
+}
+
+.filterTagRange {
+  background-color: #ecfdf5; /* bg-green-50 */
+  color: #166534; /* text-green-800 */
+}
+
+.filterTagTrend {
+  background-color: #faf5ff; /* bg-purple-50 */
+  color: #7c3aed; /* text-purple-800 */
+}
+
+/* Tags específicos por tipo - Tema Oscuro */
+.filtersContainerDark .filterTagMagnitude {
+  background-color: #1e3a8a; /* bg-blue-900 */
+  color: #93c5fd; /* text-blue-300 */
+}
+
+.filtersContainerDark .filterTagRange {
+  background-color: #064e3b; /* bg-green-900 */
+  color: #6ee7b7; /* text-green-300 */
+}
+
+.filtersContainerDark .filterTagTrend {
+  background-color: #581c87; /* bg-purple-900 */
+  color: #c4b5fd; /* text-purple-300 */
+}
+
+/* Estados de focus para inputs - Tema Claro */
+.filterInputLight:focus {
+  border-color: #3b82f6; /* focus:border-blue-500 */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); /* focus:ring-blue-500 */
+}
+
+/* Estados de focus para inputs - Tema Oscuro */
+.filterInputDark:focus {
+  border-color: #60a5fa; /* focus:border-blue-400 */
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2); /* focus:ring-blue-400 */
+}
+
+/* Transiciones suaves */
+.filtersContainer,
+.filterInput,
+.clearButton,
+.filterTag {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Responsive para filtros */
+@media (max-width: 768px) {
+  .filtersContainer {
+    padding: 1rem;
+  }
+  
+  .filtersContainer > div {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .filtersContainer > div > div {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ===== ESTILOS PARA TABLA CON SCROLL ===== */
+
+/* Contenedor de tabla con scroll - Tema Claro */
+.tableScrollContainer {
+  max-height: 24rem; /* max-h-96 */
+  overflow-y: auto;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb; /* border-gray-200 */
+}
+
+/* Contenedor de tabla con scroll - Tema Oscuro */
+.tableScrollContainerDark {
+  max-height: 24rem; /* max-h-96 */
+  overflow-y: auto;
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #374151; /* border-gray-700 */
+}
+
+/* Encabezado fijo de la tabla - Tema Claro */
+.tableHeader {
+  position: sticky;
+  top: 0;
+  background-color: #ffffff; /* bg-white */
+  z-index: 10;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Encabezado fijo de la tabla - Tema Oscuro */
+.tableHeaderDark {
+  position: sticky;
+  top: 0;
+  background-color: #1f2937; /* bg-gray-800 */
+  z-index: 10;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* Estilos para el scrollbar personalizado - Tema Claro */
+.tableScrollContainer::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.tableScrollContainer::-webkit-scrollbar-track {
+  background: #f1f5f9; /* bg-slate-100 */
+  border-radius: 4px;
+}
+
+.tableScrollContainer::-webkit-scrollbar-thumb {
+  background: #cbd5e1; /* bg-slate-300 */
+  border-radius: 4px;
+}
+
+.tableScrollContainer::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; /* bg-slate-400 */
+}
+
+/* Estilos para el scrollbar personalizado - Tema Oscuro */
+.tableScrollContainerDark::-webkit-scrollbar-track {
+  background: #374151; /* bg-gray-700 */
+}
+
+.tableScrollContainerDark::-webkit-scrollbar-thumb {
+  background: #6b7280; /* bg-gray-500 */
+}
+
+.tableScrollContainerDark::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af; /* bg-gray-400 */
+}
+
+/* Responsive para tabla */
+@media (max-width: 768px) {
+  .tableScrollContainer {
+    max-height: 20rem;
+  }
+}

@@ -17,6 +17,13 @@ export default defineConfig({
         port: 3000,
         open: true,
         host: true,
+        proxy: {
+            '/auth': {
+                target: 'http://localhost:8001',
+                changeOrigin: true,
+                secure: false,
+            },
+        },
     },
     build: {
         outDir: 'dist',
