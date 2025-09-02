@@ -18,7 +18,7 @@ import {
 } from 'recharts';
 import { Clock, MapPin, AlertTriangle, TrendingUp } from 'lucide-react';
 import { useTheme } from '../../../../context/ThemeContext';
-import styles from './UltimoSismoCharts.module.css';
+import styles from '../../../../styles/UltimoSismoCharts.module.css';
 
 interface UltimoSismoChartsProps {
   countryData: any;

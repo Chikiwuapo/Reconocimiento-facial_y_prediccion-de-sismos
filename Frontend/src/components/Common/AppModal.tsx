@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
-import styles from './AppModal.module.css';
+import styles from '../../styles/AppModal.module.css';
 
 interface ModalProps {
   isOpen: boolean;

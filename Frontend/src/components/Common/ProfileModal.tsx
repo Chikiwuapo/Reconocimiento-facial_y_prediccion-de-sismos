@@ -1,5 +1,6 @@
 import React from 'react';
 import AppModal from './AppModal';
+import '../../styles/ProfileModal.css';
 
 interface UserInfo {
   name: string;
@@ -77,10 +78,13 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
   const [usersList, setUsersList] = useState<BackendUser[]>([]);
   const [rolesVersion, setRolesVersion] = useState(0); // aún usado para forzar refresh tras cambios
 
-  const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<{username: string; email: string; dni?: string | null}>({ username: '', email: '', dni: '' });
   const [permModalOpen, setPermModalOpen] = useState(false);
   const [permTarget, setPermTarget] = useState<BackendUser | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<BackendUser | null>(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<BackendUser | null>(null);
 
   useEffect(() => {
     try {
@@ -118,18 +122,32 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
     } catch {}
   };
 
-  const beginEdit = (u: BackendUser) => {
+  const openDeleteModal = (u: BackendUser) => {
     if (!(isAdmin(currentUser) || isCEO(currentUser))) return;
-    setEditingId(u.id);
-    setEditForm({ username: u.username, email: u.email, dni: u.dni ?? '' });
+    setDeleteTarget(u);
+    setDeleteModalOpen(true);
   };
-  const cancelEdit = () => { setEditingId(null); };
-  const saveEdit = async (u: BackendUser) => {
+  const closeDeleteModal = () => { setDeleteModalOpen(false); setDeleteTarget(null); };
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await removeUser(deleteTarget.username);
+    closeDeleteModal();
+  };
+
+  const openEditModal = (u: BackendUser) => {
     if (!(isAdmin(currentUser) || isCEO(currentUser))) return;
+    setEditTarget(u);
+    setEditForm({ username: u.username, email: u.email, dni: u.dni ?? '' });
+    setEditModalOpen(true);
+  };
+  const closeEditModal = () => { setEditModalOpen(false); setEditTarget(null); };
+  const saveEditModal = async () => {
+    if (!(isAdmin(currentUser) || isCEO(currentUser))) return;
+    if (!editTarget) return;
     try {
-      await updateBackendUser(u.id, { username: editForm.username, email: editForm.email, dni: (editForm.dni ?? undefined) });
-      setUsersList(prev => prev.map(it => it.id === u.id ? { ...it, username: editForm.username, email: editForm.email, dni: editForm.dni || null } : it));
-      setEditingId(null);
+      await updateBackendUser(editTarget.id, { username: editForm.username, email: editForm.email, dni: (editForm.dni ?? undefined) });
+      setUsersList(prev => prev.map(it => it.id === editTarget.id ? { ...it, username: editForm.username, email: editForm.email, dni: editForm.dni || null } : it));
+      closeEditModal();
     } catch (e) {
       // opcional: mostrar error
     }
@@ -473,23 +491,24 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
       title="Perfil de Usuario"
       size="lg"
     >
+      <div className="profile-modal">
       {/* Tabs: mostrar solo para Admin/CEO */}
       {(isAdmin(currentUser) || isCEO(currentUser)) && (
-        <div className="flex gap-2 px-2 md:px-4">
+        <div className="pm-tabs flex gap-2 px-2 md:px-4">
           <button
-            className={`px-3 py-2 rounded-md text-sm ${activeTab === 'perfil' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+            className={`px-3 py-2 rounded-md text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400/60 ${activeTab === 'perfil' ? 'bg-sky-600 text-white shadow-sm' : 'bg-sky-50 text-slate-800 dark:bg-slate-700 dark:text-gray-100'}`}
             onClick={() => setActiveTab('perfil')}
           >
             Perfil
           </button>
           <button
-            className={`px-3 py-2 rounded-md text-sm ${activeTab === 'rostro' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+            className={`px-3 py-2 rounded-md text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400/60 ${activeTab === 'rostro' ? 'bg-sky-600 text-white shadow-sm' : 'bg-sky-50 text-slate-800 dark:bg-slate-700 dark:text-gray-100'}`}
             onClick={() => setActiveTab('rostro')}
           >
             Registrar/Actualizar rostro
           </button>
           <button
-            className={`px-3 py-2 rounded-md text-sm ${activeTab === 'usuarios' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 dark:text-gray-100'}`}
+            className={`px-3 py-2 rounded-md text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-400/60 ${activeTab === 'usuarios' ? 'bg-sky-600 text-white shadow-sm' : 'bg-sky-50 text-slate-800 dark:bg-slate-700 dark:text-gray-100'}`}
             onClick={() => setActiveTab('usuarios')}
           >
             Gestión de usuarios
@@ -502,53 +521,67 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
         <div className="flex flex-col items-center">
           {activeTab === 'rostro' && (isAdmin(currentUser) || isCEO(currentUser)) ? (
             <>
-              <div className="relative w-full rounded-lg overflow-hidden bg-black/70" style={{ aspectRatio: '4 / 3' }}>
+              <div className="pm-webcam relative w-full rounded-xl overflow-hidden bg-gradient-to-br from-slate-900 to-black ring-1 ring-sky-500/30 shadow-lg" style={{ aspectRatio: '4 / 3' }}>
                 <Webcam
                   key={camKey}
                   ref={webcamRef}
                   audio={false}
                   screenshotFormat="image/jpeg"
                   screenshotQuality={1}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover opacity-95 transition-opacity"
                   videoConstraints={videoConstraints}
                 />
                 <canvas key={`c-${camKey}`} ref={canvasRef} className="absolute inset-0 w-full h-full" />
               </div>
               <div className="w-full mt-3 text-sm">
-                {!faceReady && <span className="text-gray-400">Inicializando modelo facial...</span>}
-                {faceReady && !faceDetected && <span className="text-yellow-500">No se detecta rostro</span>}
-                {faceReady && faceDetected && !faceStable && <span className="text-green-500">Estabilizando...</span>}
-                {faceReady && faceStable && !farRef.current && <span className="text-green-500">Rostro listo</span>}
-                {faceReady && faceStable && farRef.current && <span className="text-pink-400">Acércate un poco (muy lejos)</span>}
+                {!faceReady && <span className="text-slate-400">Inicializando modelo facial...</span>}
+                {faceReady && !faceDetected && <span className="text-amber-500">No se detecta rostro</span>}
+                {faceReady && faceDetected && !faceStable && <span className="text-emerald-500">Estabilizando...</span>}
+                {faceReady && faceStable && !farRef.current && <span className="text-emerald-500">Rostro listo</span>}
+                {faceReady && faceStable && farRef.current && <span className="text-fuchsia-400">Acércate un poco (muy lejos)</span>}
               </div>
               {loading && (
                 <div className="w-full max-w-[640px]">
-                  <div className="w-full h-2 bg-gray-600/40 rounded">
-                    <div className="h-2 bg-blue-500 rounded transition-[width] duration-100" style={{ width: `${progress}%` }} />
+                  <div className="pm-progress w-full h-2 bg-slate-600/30 rounded overflow-hidden">
+                    <div className="pm-progress__bar h-2 bg-gradient-to-r from-sky-400 to-blue-600 animate-[pulse_1.2s_ease-in-out_infinite] rounded" style={{ width: `${progress}%` }} />
                   </div>
-                  <div className="mt-1 text-xs text-gray-400">{progress}%</div>
+                  <div className="mt-1 text-xs text-slate-400">{progress}%</div>
                 </div>
               )}
+
+          {/* Modal Confirmar Eliminación */}
+          {deleteModalOpen && deleteTarget && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+              <div className="pm-card w-full max-w-lg bg-white/95 dark:bg-slate-900/90 rounded-xl p-6 shadow-2xl border border-sky-200/70 dark:border-slate-700 backdrop-blur">
+                <h5 className="text-xl mb-2">Eliminar usuario</h5>
+                <p className="text-sm mb-4">¿Seguro que deseas eliminar a <b>{deleteTarget.username}</b>? Esta acción afecta sólo la base de usuarios del reconocimiento facial.</p>
+                <div className="flex justify-end gap-2">
+                  <button className="px-3 py-2 rounded bg-gray-500 hover:bg-gray-600 text-white" onClick={closeDeleteModal}>Cancelar</button>
+                  <button className="px-3 py-2 rounded bg-rose-600 hover:bg-rose-700 text-white" onClick={confirmDelete}>Eliminar</button>
+                </div>
+              </div>
+            </div>
+          )}
             </>
           ) : activeTab === 'perfil' ? (
-            <div className="w-full max-w-md mx-auto p-4 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="pm-card w-full max-w-md mx-auto p-5 rounded-xl border border-sky-200/70 dark:border-slate-700 bg-white/90 dark:bg-slate-900/70 backdrop-blur shadow-md transition-all">
               {/* Centro: imagen grande, luego nombre y correo, y nota de administrador */}
               <div className="flex flex-col items-center gap-3">
-                <div className="w-40 h-40 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                <div className="w-40 h-40 rounded-xl bg-sky-50 dark:bg-slate-700 overflow-hidden ring-1 ring-sky-200/60">
                   {currentUser?.avatar ? (
                     <img src={currentUser.avatar} alt="avatar" className="w-full h-full object-cover" />
                   ) : null}
                 </div>
                 <div className="text-lg font-semibold text-center">{currentUser?.name || '—'}</div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 text-center">{currentUser?.email || '—'}</div>
+                <div className="pm-email text-sm text-center">{currentUser?.email || '—'}</div>
                 {!(isAdmin(currentUser) || isCEO(currentUser)) && (
-                  <div className="text-xs text-center text-gray-500 mt-2">
+                  <div className="text-xs text-center text-slate-500 mt-2">
                     Solo un Administrador puede cambiar roles y crear usuarios.
                   </div>
                 )}
               </div>
               {onLogout && (
-                <button onClick={onLogout} className="mt-4 w-full px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 rounded-lg transition-colors">
+                <button onClick={onLogout} className="mt-4 w-full px-4 py-2 rounded-lg text-white bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 transition-colors">
                   Cerrar sesión
                 </button>
               )}
@@ -559,14 +592,14 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
         {/* Columna derecha */}
         <div className="flex flex-col space-y-4">
           {activeTab === 'rostro' && (isAdmin(currentUser) || isCEO(currentUser)) && (
-            <div>
-              <h4 className="text-lg font-semibold">Registrar/Actualizar rostro</h4>
+            <div className="pm-card rounded-xl border border-sky-200/70 bg-white/90 dark:bg-slate-900/60 backdrop-blur p-4 shadow-sm">
+              <h4 className="text-lg font-bold text-slate-800 dark:text-slate-100">Registrar/Actualizar rostro</h4>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label className="flex flex-col text-sm">
-                  Nombre
+                  <span className="font-bold text-black">Nombre</span>
                   <input
-                    className="mt-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="mt-1 px-3 py-2 rounded-md border border-sky-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-sky-500"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Tu nombre"
@@ -574,9 +607,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                   />
                 </label>
                 <label className="flex flex-col text-sm">
-                  DNI
+                  <span className="font-bold text-black">DNI</span>
                   <input
-                    className="mt-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="mt-1 px-3 py-2 rounded-md border border-sky-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-sky-500"
                     value={dni}
                     onChange={(e) => setDni(e.target.value)}
                     placeholder="Tu DNI (opcional)"
@@ -584,10 +617,10 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                   />
                 </label>
                 <label className="flex flex-col text-sm md:col-span-2">
-                  Correo
+                  <span className="font-bold text-black">Correo</span>
                   <input
                     type="email"
-                    className="mt-1 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="mt-1 px-3 py-2 rounded-md border border-sky-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-sky-500"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="tu@correo.com"
@@ -599,7 +632,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                   <button
                     onClick={handleRegister}
                     disabled={!canSubmit || loading || !faceDetected}
-                    className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium rounded-lg transition-colors flex items-center justify-center"
+                    className="w-full px-4 py-2 text-white font-medium rounded-lg transition-all flex items-center justify-center bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 disabled:opacity-60"
                   >
                     {loading ? 'Procesando…' : 'Registrar Usuario'}
                   </button>
@@ -607,6 +640,49 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                   {error && (
                     <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
                   )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modal Editar Usuario */}
+          {editModalOpen && editTarget && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+              <div className="pm-card w-full max-w-2xl bg-white/95 dark:bg-slate-900/90 rounded-xl p-6 shadow-2xl border border-sky-200/70 dark:border-slate-700 backdrop-blur">
+                <div className="flex items-center justify-between mb-4">
+                  <h5 className="text-xl text-black">Editar usuario</h5>
+                  <button className="text-sm px-3 py-1 rounded bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600" onClick={closeEditModal}>Cerrar</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="flex flex-col text-sm">
+                    <span className="font-bold text-black">Nombre de usuario</span>
+                    <input
+                      className="mt-1 px-3 py-2 rounded-md border border-sky-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      value={editForm.username}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, username: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col text-sm">
+                    <span className="font-bold text-black">Correo</span>
+                    <input
+                      type="email"
+                      className="mt-1 px-3 py-2 rounded-md border border-sky-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col text-sm md:col-span-2">
+                    <span className="font-bold text-black">DNI</span>
+                    <input
+                      className="mt-1 px-3 py-2 rounded-md border border-sky-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      value={editForm.dni ?? ''}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, dni: e.target.value }))}
+                    />
+                  </label>
+                </div>
+                <div className="mt-5 flex justify-end gap-2">
+                  <button className="px-3 py-2 rounded bg-gray-500 hover:bg-gray-600 text-white" onClick={closeEditModal}>Cancelar</button>
+                  <button className="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-700 text-white" onClick={saveEditModal}>Guardar cambios</button>
                 </div>
               </div>
             </div>
@@ -620,9 +696,9 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                 <h4 className="text-lg font-semibold">Gestión de usuarios</h4>
               </div>
               {/* Tabla (solo lectura desde user.db). Sin formulario de creación. */}
-              <div className="overflow-auto border border-gray-300 dark:border-gray-700 rounded-md">
+              <div className="pm-table overflow-auto border border-sky-200/70 dark:border-slate-700 rounded-md shadow-sm">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-100 dark:bg-gray-700">
+                  <thead className="bg-sky-50 dark:bg-slate-800/60">
                     <tr>
                       <th className="text-left p-2">ID</th>
                       <th className="text-left p-2">Nombre</th>
@@ -634,52 +710,26 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                     </tr>
                   </thead>
                   <tbody>
-                    {usersList.map(u => {
-                      const isEditing = editingId === u.id;
-                      const role = getDisplayRole(u);
-                      return (
-                        <tr key={u.id} className="border-t border-gray-200 dark:border-gray-700">
+                      {usersList.map(u => {
+                       const role = getDisplayRole(u);
+                       return (
+                         <tr key={u.id} className="border-t border-sky-200/70 dark:border-slate-700">
                           <td className="p-2">{u.id}</td>
                           <td className="p-2">
-                            {isEditing ? (
-                              <input
-                                className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
-                                value={editForm.username}
-                                onChange={(e)=>setEditForm(prev=>({...prev, username: e.target.value}))}
-                              />
-                            ) : (
-                              u.username
-                            )}
+                            {u.username}
                           </td>
                           <td className="p-2">
-                            {isEditing ? (
-                              <input
-                                type="email"
-                                className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
-                                value={editForm.email}
-                                onChange={(e)=>setEditForm(prev=>({...prev, email: e.target.value}))}
-                              />
-                            ) : (
-                              u.email
-                            )}
+                            {u.email}
                           </td>
                           <td className="p-2">
-                            {isEditing ? (
-                              <input
-                                className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
-                                value={editForm.dni ?? ''}
-                                onChange={(e)=>setEditForm(prev=>({...prev, dni: e.target.value}))}
-                              />
-                            ) : (
-                              u.dni ?? '—'
-                            )}
+                            {u.dni ?? '—'}
                           </td>
                           <td className="p-2">{role}</td>
                           <td className="p-2">
                             {(isAdmin(currentUser) || isCEO(currentUser)) ? (
                               <button
-                                className="px-2 py-1 rounded bg-indigo-600 text-white"
-                                onClick={()=>openPermModal(u)}
+                                className="px-2 py-1 rounded bg-sky-600 text-white hover:bg-sky-700 transition-colors"
+                                onClick={() => openPermModal(u)}
                               >Gestionar</button>
                             ) : (
                               <span className="text-gray-400">—</span>
@@ -687,30 +737,17 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
                           </td>
                           <td className="p-2 flex gap-2">
                             {(isAdmin(currentUser) || isCEO(currentUser)) ? (
-                              isEditing ? (
-                                <>
-                                  <button
-                                    className="px-2 py-1 rounded bg-green-600 text-white disabled:opacity-60"
-                                    onClick={()=>saveEdit(u)}
-                                  >Guardar</button>
-                                  <button
-                                    className="px-2 py-1 rounded bg-gray-500 text-white"
-                                    onClick={cancelEdit}
-                                  >Cancelar</button>
-                                </>
+                              <>
+                                <button
+                                  className="px-2 py-1 rounded bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                                  onClick={() => openEditModal(u)}
+                                >Editar</button>
+                                <button
+                                  className="px-2 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white transition-colors"
+                                  onClick={() => openDeleteModal(u)}
+                                >Eliminar</button>
+                              </>
                               ) : (
-                                <>
-                                  <button
-                                    className="px-2 py-1 rounded bg-yellow-600 text-white"
-                                    onClick={()=>beginEdit(u)}
-                                  >Editar</button>
-                                  <button
-                                    className="px-2 py-1 rounded bg-red-600 text-white"
-                                    onClick={()=>removeUser(u.username)}
-                                  >Eliminar</button>
-                                </>
-                              )
-                            ) : (
                               <span className="text-gray-400">—</span>
                             )}
                           </td>
@@ -725,40 +762,41 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
 
           {/* Modal Permisos Avanzados */}
           {permModalOpen && permTarget && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg p-4 shadow-xl border border-gray-200 dark:border-gray-700">
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+              <div className="pm-card pm-perms w-full max-w-md bg-white/95 dark:bg-slate-900/90 rounded-xl p-5 shadow-2xl border border-sky-200/70 dark:border-slate-700 backdrop-blur">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-semibold text-lg">Gestionar permisos</h5>
-                  <button className="text-sm px-2 py-1 rounded bg-gray-200 dark:bg-gray-700" onClick={closePermModal}>Cerrar</button>
+                  <h5 className="font-bold text-lg text-slate-800 dark:text-slate-100">Gestionar permisos</h5>
+                  <button className="text-sm px-2 py-1 rounded bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600" onClick={closePermModal}>Cerrar</button>
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                <div className="text-sm text-slate-600 dark:text-slate-300 mb-3">
                   Usuario: <b>{permTarget.username}</b> — <span className="ml-1">{permTarget.email}</span>
                 </div>
                 <div className="space-y-2">
-                  <div className="p-3 rounded border border-gray-200 dark:border-gray-700">
-                    <div className="font-medium mb-2">Asignar rol</div>
+                  <div className="p-3 rounded border border-sky-200/70 dark:border-slate-700">
+                    <div className="font-bold text-slate-800 dark:text-slate-100 mb-2">Asignar rol</div>
                     <div className="flex flex-wrap gap-2">
                       <button
-                        className="px-3 py-1 rounded bg-blue-600 text-white disabled:opacity-50"
+                        className="px-3 py-1 rounded bg-sky-600 hover:bg-sky-700 text-white disabled:opacity-50 transition-colors"
                         onClick={applyMakeAdmin}
                         disabled={
+                          (permTarget && ((permTarget.username || '').trim().toLowerCase() === 'eduard')) ||
                           (permTarget && ((permTarget.username||'').trim().toLowerCase() === 'eduard')) ||
                           (getDisplayRole(permTarget) === 'Administrador') ||
                           (currentUser?.email === permTarget.email)
                         }
                       >Hacer Administrador</button>
                       <button
-                        className="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-50"
+                        className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors"
                         onClick={applyMakeCEO}
                         disabled={!isCEO(currentUser) || (currentUser?.email === permTarget.email) || ((permTarget.username||'').trim().toLowerCase() === 'eduard') || (getDisplayRole(permTarget) === 'CEO')}
                       >Hacer CEO</button>
                       <button
-                        className="px-3 py-1 rounded bg-gray-600 text-white disabled:opacity-50"
+                        className="px-3 py-1 rounded bg-gray-600 hover:bg-gray-700 text-white disabled:opacity-50 transition-colors"
                         onClick={applyMakeUser}
                         disabled={!isCEO(currentUser) || (currentUser?.email === permTarget.email) || ((permTarget.username||'').trim().toLowerCase() === 'eduard') || (getDisplayRole(permTarget) === 'Usuario')}
                       >Volver a Usuario</button>
                     </div>
-                    <div className="text-xs text-gray-500 mt-2">
+                    <div className="text-xs text-slate-500 mt-2">
                       {isCEO(currentUser) ? (
                         <>
                           El CEO puede asignar y quitar cualquier rol (salvo a sí mismo).
@@ -775,6 +813,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, user, onLo
             </div>
           )}
         </div>
+      </div>
       </div>
     </AppModal>
   );

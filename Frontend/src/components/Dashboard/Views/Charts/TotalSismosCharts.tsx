@@ -14,7 +14,7 @@ import {
   Cell
 } from 'recharts';
 import { Activity, TrendingUp, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
-import styles from './TotalSismosCharts.module.css';
+import styles from '../../../../styles/TotalSismosCharts.module.css';
 
 interface TotalSismosChartsProps {
   countryData: any;

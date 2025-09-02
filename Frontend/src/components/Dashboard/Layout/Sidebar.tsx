@@ -1,4 +1,5 @@
 import React from "react";
+import Logo from "../../../../assets/LogoASSA.png";
 import {
   X,
   Home,
@@ -80,26 +81,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
       `}
       >
         {/* Header: Logo + Título */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
-          <div
-            className={`flex items-center ${
-              collapsed ? "justify-center w-full" : "space-x-3"
-            }`}
-          >
-            <AlertTriangle
-              className={`text-red-400 transition-transform duration-300 ${
-                collapsed ? "h-8 w-8" : "h-8 w-8"
-              }`}
+        <div className="relative flex items-center justify-center h-[160px] px-4 border-b border-gray-800">
+          <div className="flex items-center justify-center w-full">
+            <img
+              src={Logo}
+              alt="SismoPredict Logo"
+              className="h-[180px] w-auto object-contain mx-auto"
+              loading="lazy"
             />
-            {!collapsed && (
-              <span className="text-white font-semibold text-xl tracking-wide">
-                SISMOPREDICT
-              </span>
-            )}
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="lg:hidden text-gray-400 hover:text-white"
+            className="absolute top-4 right-4 lg:hidden text-gray-400 hover:text-white"
+            aria-label="Cerrar sidebar"
           >
             <X className="h-5 w-5" />
           </button>

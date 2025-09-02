@@ -9,7 +9,7 @@ import TotalSismosCharts from './Charts/TotalSismosCharts';
 import MagnitudMaxCharts from './Charts/MagnitudMaxCharts';
 import MagnitudPromedioCharts from './Charts/MagnitudPromedioCharts';
 import UltimoSismoCharts from './Charts/UltimoSismoCharts';
-import styles from './CountryView.module.css';
+import styles from '../../../styles/CountryView.module.css';
 
 interface CountryViewProps {
   country: Country;
