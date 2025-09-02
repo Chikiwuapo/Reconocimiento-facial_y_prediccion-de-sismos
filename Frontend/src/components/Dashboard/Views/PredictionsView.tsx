@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useDashboard } from '../Context/DashboardContext';
 import { predictionService } from '../../../services/predictionService';
-import styles from './PredictionsView.module.css';
+import styles from '../../../styles/PredictionsView.module.css';
 
 const PredictionsView: React.FC = () => {
   const { 

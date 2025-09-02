@@ -13,7 +13,7 @@ import {
   ComposedChart
 } from 'recharts';
 import { TrendingUp, BarChart3, Target } from 'lucide-react';
-import styles from './MagnitudPromedioCharts.module.css';
+import styles from '../../../../styles/MagnitudPromedioCharts.module.css';
 
 interface MagnitudPromedioChartsProps {
   countryData: any;

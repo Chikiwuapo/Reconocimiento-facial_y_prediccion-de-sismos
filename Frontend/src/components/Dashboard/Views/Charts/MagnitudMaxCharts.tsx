@@ -14,7 +14,7 @@ import {
   ZAxis
 } from 'recharts';
 import { Zap, TrendingUp, AlertTriangle, MapPin } from 'lucide-react';
-import styles from './MagnitudMaxCharts.module.css';
+import styles from '../../../../styles/MagnitudMaxCharts.module.css';
 
 interface MagnitudMaxChartsProps {
   countryData: any;

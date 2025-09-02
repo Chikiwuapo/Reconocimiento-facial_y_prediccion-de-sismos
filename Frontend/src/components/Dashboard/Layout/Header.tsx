@@ -20,13 +20,7 @@ const Header: React.FC = () => {
       <header className={`${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200'} px-6 py-4 transition-colors duration-300`}>
         <div className="flex items-center justify-between">
           {/* Left side - Branding and Titles */}
-          <div className="flex items-start space-x-3">
-            <div className={`p-2 rounded-md h-10 w-10 flex items-center justify-center transition-colors duration-300 ${isDark ? 'bg-red-900/30' : 'bg-red-100'}`}>
-              {/* Simple seismograph/wave icon using SVG */}
-              <svg className="h-6 w-6 text-red-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 12h3l2-6 4 12 2-6h5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+          <div className="flex items-start space-x-3">           
             <div>
               <h1 className={`text-xl md:text-2xl font-bold leading-tight transition-colors duration-300 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>Dashboard de Predicción de Sismos</h1>
               <p className={`text-sm md:text-base transition-colors duration-300 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Monitoreo y predicción de actividad sísmica en Sudamérica</p>

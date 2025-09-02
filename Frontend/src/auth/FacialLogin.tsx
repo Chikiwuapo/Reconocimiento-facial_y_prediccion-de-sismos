@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Webcam from 'react-webcam';
-import './FacialLogin.css';
+import '../styles/FacialLogin.css';
 import { loginFace, me } from '@/services/auth';
 import { speak } from '@/utils/tts';
 import { saveFaceSnapshot, setCurrentUserFromBackendProfile } from '@/services/userService';

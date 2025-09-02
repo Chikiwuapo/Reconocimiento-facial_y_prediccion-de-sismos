@@ -20,7 +20,7 @@ import { CountryEarthquakeStats, RiskDistribution } from '../../../types/dashboa
 import { useErrorHandler } from '../../../hooks/useErrorHandler';
 import { earthquakeService, YearlyStatistics } from '../../../services/earthquakeService';
 import { useTheme } from '../../../context/ThemeContext';
-import styles from './StatisticsView.module.css';
+import styles from '../../../styles/StatisticsView.module.css';
 
 const StatisticsView: React.FC = () => {
   const { theme } = useTheme();
