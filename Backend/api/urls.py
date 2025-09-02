@@ -10,4 +10,10 @@ urlpatterns = [
     path('statistics/year/<int:year>/', views.yearly_statistics, name='yearly_statistics'),
     path('statistics/all-years/', views.all_years_statistics, name='all_years_statistics'),
     path('dashboard/', views.dashboard_data, name='dashboard_data'),
+    # Nuevos endpoints para predicciones
+    path('predictions/generate', views.generate_prediction, name='generate_prediction'),
+    path('predictions/history', views.prediction_history, name='prediction_history'),
+    path('predictions/accuracy', views.prediction_accuracy, name='prediction_accuracy'),
+    path('predictions/train', views.train_models, name='train_models'),
+    path('predictions/features', views.prediction_features, name='prediction_features'),
 ]

@@ -3,7 +3,11 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db import connection
 from .serializers import CountryDataSerializer
+from .ml_service import ml_service
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 @api_view(['GET'])
 def south_american_countries(request):
@@ -781,3 +785,276 @@ def country_all_years_statistics(request, country_code):
             }, 
             status=500
         )
+
+@api_view(['POST'])
+def generate_prediction(request):
+    """Generar predicción sísmica usando machine learning"""
+    try:
+        data = request.data
+        country = data.get('country')
+        timeframe = data.get('timeframe', '90d')
+        
+        if not country:
+            return Response(
+                {'error': 'País es requerido'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validar que el país sea sudamericano
+        south_american_countries = [
+            'Argentina', 'Bolivia', 'Brazil', 'Chile', 'Colombia', 
+            'Ecuador', 'Guyana', 'Paraguay', 'Peru', 'Suriname', 
+            'Uruguay', 'Venezuela'
+        ]
+        
+        if country not in south_american_countries:
+            return Response(
+                {'error': 'País no válido o no sudamericano'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Generar predicción usando ML
+        prediction = ml_service.predict(country)
+        
+        if prediction:
+            return Response({
+                'success': True,
+                'data': prediction
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'Error al generar predicción'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    except Exception as e:
+        logger.error(f"Error generating prediction: {str(e)}")
+        return Response({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def prediction_history(request):
+    """Obtener historial de predicciones"""
+    try:
+        country = request.GET.get('country')
+        
+        with connection.cursor() as cursor:
+            query = """
+                SELECT 
+                    country_code, event_date, location,
+                    max_mag_last90d, prob_m45_next7d, prob_m50_next30d, prob_m60_next90d,
+                    eq_count_m3_last7d, eq_count_m4_last30d, energy_sum_last365d
+                FROM prediction
+            """
+            
+            params = []
+            if country:
+                query += " WHERE country_code = %s"
+                params.append(country)
+            
+            query += " ORDER BY event_date DESC LIMIT 100"
+            
+            cursor.execute(query, params)
+            results = cursor.fetchall()
+            
+            history = []
+            for row in results:
+                # Calcular nivel de riesgo basado en probabilidades
+                prob_7d = row[4] or 0
+                if prob_7d > 0.3:
+                    risk = 'very-high'
+                elif prob_7d > 0.2:
+                    risk = 'high'
+                elif prob_7d > 0.1:
+                    risk = 'medium'
+                else:
+                    risk = 'low'
+                
+                history.append({
+                    'country': row[0],
+                    'date': str(row[1]),
+                    'location': row[2],
+                    'magnitude': row[3],
+                    'risk': risk,
+                    'probability24h': (prob_7d * 0.3) * 100,
+                    'probability7d': prob_7d * 100,
+                    'probability30d': (row[5] or 0) * 100,
+                    'earthquakes7d': row[7],
+                    'earthquakes30d': row[8],
+                    'energy365d': row[9]
+                })
+            
+            return Response({
+                'success': True,
+                'data': history
+            })
+            
+    except Exception as e:
+        logger.error(f"Error fetching prediction history: {str(e)}")
+        return Response({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def prediction_accuracy(request):
+    """Obtener precisión de las predicciones"""
+    try:
+        country = request.GET.get('country')
+        
+        with connection.cursor() as cursor:
+            # Calcular precisión basada en etiquetas vs probabilidades
+            query = """
+                SELECT 
+                    COUNT(*) as total_predictions,
+                    AVG(CASE 
+                        WHEN label_m45_next7d = 1 AND prob_m45_next7d > 0.2 THEN 1
+                        WHEN label_m45_next7d = 0 AND prob_m45_next7d <= 0.2 THEN 1
+                        ELSE 0
+                    END) as accuracy_7d,
+                    AVG(CASE 
+                        WHEN label_m50_next30d = 1 AND prob_m50_next30d > 0.3 THEN 1
+                        WHEN label_m50_next30d = 0 AND prob_m50_next30d <= 0.3 THEN 1
+                        ELSE 0
+                    END) as accuracy_30d
+                FROM prediction
+                WHERE label_m45_next7d IS NOT NULL AND prob_m45_next7d IS NOT NULL
+            """
+            
+            params = []
+            if country:
+                query += " AND country_code = %s"
+                params.append(country)
+            
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+            
+            if result and result[0] > 0:
+                total_predictions, accuracy_7d, accuracy_30d = result
+                overall_accuracy = (accuracy_7d + accuracy_30d) / 2
+                
+                return Response({
+                    'success': True,
+                    'data': {
+                        'accuracy': round(overall_accuracy * 100, 2),
+                        'totalPredictions': total_predictions,
+                        'accuracy7d': round(accuracy_7d * 100, 2),
+                        'accuracy30d': round(accuracy_30d * 100, 2)
+                    }
+                })
+            else:
+                return Response({
+                    'success': True,
+                    'data': {
+                        'accuracy': 0,
+                        'totalPredictions': 0,
+                        'accuracy7d': 0,
+                        'accuracy30d': 0
+                    }
+                })
+                
+    except Exception as e:
+        logger.error(f"Error calculating prediction accuracy: {str(e)}")
+        return Response({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def train_models(request):
+    """Entrenar modelos de machine learning"""
+    try:
+        data = request.data
+        country = data.get('country')
+        
+        # Entrenar modelos
+        success = ml_service.train_models(country_code=country)
+        
+        if success:
+            return Response({
+                'success': True,
+                'message': f'Modelos entrenados exitosamente para {country or "todos los países"}'
+            })
+        else:
+            return Response({
+                'success': False,
+                'error': 'Error al entrenar los modelos'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    except Exception as e:
+        logger.error(f"Error training models: {str(e)}")
+        return Response({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['GET'])
+def prediction_features(request):
+    """Obtener features disponibles para predicciones"""
+    try:
+        country = request.GET.get('country')
+        
+        with connection.cursor() as cursor:
+            query = """
+                SELECT 
+                    country_code, event_date,
+                    eq_count_m3_last7d, eq_count_m4_last30d, max_mag_last90d,
+                    energy_sum_last365d, days_since_last_m5, gr_b_value_last365d,
+                    gr_a_value_last365d, aftershock_rate, dist_to_fault_km,
+                    fault_slip_rate_mm_yr, depth_to_slab_km, strain_rate,
+                    gps_uplift_mm_yr, heat_flow_mw_m2, catalog_completeness_mc,
+                    station_density, detection_threshold
+                FROM prediction
+            """
+            
+            params = []
+            if country:
+                query += " WHERE country_code = %s"
+                params.append(country)
+            
+            query += " ORDER BY event_date DESC LIMIT 1"
+            
+            cursor.execute(query, params)
+            result = cursor.fetchone()
+            
+            if result:
+                features = {
+                    'country': result[0],
+                    'date': str(result[1]),
+                    'eq_count_m3_last7d': result[2],
+                    'eq_count_m4_last30d': result[3],
+                    'max_mag_last90d': result[4],
+                    'energy_sum_last365d': result[5],
+                    'days_since_last_m5': result[6],
+                    'gr_b_value_last365d': result[7],
+                    'gr_a_value_last365d': result[8],
+                    'aftershock_rate': result[9],
+                    'dist_to_fault_km': result[10],
+                    'fault_slip_rate_mm_yr': result[11],
+                    'depth_to_slab_km': result[12],
+                    'strain_rate': result[13],
+                    'gps_uplift_mm_yr': result[14],
+                    'heat_flow_mw_m2': result[15],
+                    'catalog_completeness_mc': result[16],
+                    'station_density': result[17],
+                    'detection_threshold': result[18]
+                }
+                
+                return Response({
+                    'success': True,
+                    'data': features
+                })
+            else:
+                return Response({
+                    'success': False,
+                    'error': 'No se encontraron features para el país especificado'
+                }, status=status.HTTP_404_NOT_FOUND)
+                
+    except Exception as e:
+        logger.error(f"Error fetching prediction features: {str(e)}")
+        return Response({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

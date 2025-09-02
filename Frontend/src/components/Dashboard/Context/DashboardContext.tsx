@@ -27,6 +27,12 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({ children }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Estados para predicciones
+  const [predictionCountry, setPredictionCountry] = useState<string | null>(null);
+  const [predictionData, setPredictionData] = useState<any>(null);
+  const [isPredicting, setIsPredicting] = useState(false);
+  const [predictionError, setPredictionError] = useState<string | null>(null);
+
   // Cargar datos al inicializar
   useEffect(() => {
     const loadData = async () => {
@@ -193,6 +199,15 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({ children }
     statistics,
     loading,
     error,
+    // Estados para predicciones
+    predictionCountry,
+    setPredictionCountry,
+    predictionData,
+    setPredictionData,
+    isPredicting,
+    setIsPredicting,
+    predictionError,
+    setPredictionError,
   };
 
   return (

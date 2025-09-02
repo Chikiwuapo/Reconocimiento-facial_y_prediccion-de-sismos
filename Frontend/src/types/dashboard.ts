@@ -1,4 +1,4 @@
-export type ViewType = 'home' | 'statistics' | 'country';
+export type ViewType = 'home' | 'statistics' | 'country' | 'predictions';
 
 export interface Country {
   id: string;
@@ -23,6 +23,15 @@ export interface DashboardContextType {
   statistics: any;
   loading: boolean;
   error: string | null;
+  // Estados para predicciones
+  predictionCountry: string | null;
+  setPredictionCountry: (country: string | null) => void;
+  predictionData: any;
+  setPredictionData: (data: any) => void;
+  isPredicting: boolean;
+  setIsPredicting: (predicting: boolean) => void;
+  predictionError: string | null;
+  setPredictionError: (error: string | null) => void;
 }
 
 export interface EarthquakeData {
@@ -45,4 +54,28 @@ export interface CountryEarthquakeStats {
   count: number;
   magnitude: number;
   risk: string;
-} 
+}
+
+export interface PredictionData {
+  country: string;
+  risk: 'low' | 'medium' | 'high' | 'very-high';
+  totalEarthquakes: number;
+  earthquakesPerDay: number;
+  averageMagnitude: number;
+  probability7d: number;
+  probability30d: number;
+  probability90d: number;
+  predictionDate: string;
+  confidence: number;
+}
+
+export interface PredictionContextType {
+  selectedCountry: string | null;
+  setSelectedCountry: (country: string | null) => void;
+  predictionData: PredictionData | null;
+  setPredictionData: (data: PredictionData | null) => void;
+  isPredicting: boolean;
+  setIsPredicting: (predicting: boolean) => void;
+  predictionError: string | null;
+  setPredictionError: (error: string | null) => void;
+}
