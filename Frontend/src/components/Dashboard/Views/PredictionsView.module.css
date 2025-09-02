@@ -1,0 +1,193 @@
+.predictionsContainer {
+  @apply space-y-6;
+}
+
+.header {
+  @apply flex items-start space-x-4 p-6 bg-white rounded-xl shadow-sm border border-gray-200;
+}
+
+.iconContainer {
+  @apply flex-shrink-0 w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center;
+}
+
+.icon {
+  @apply w-6 h-6 text-red-600;
+}
+
+.title {
+  @apply text-2xl font-bold text-gray-900 mb-2;
+}
+
+.subtitle {
+  @apply text-gray-600 text-base;
+}
+
+/* Controles de Predicción */
+.controlsCard {
+  @apply p-6 bg-white rounded-xl shadow-sm border border-gray-200;
+}
+
+.controlsTitle {
+  @apply flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-4;
+}
+
+.controlsIcon {
+  @apply w-5 h-5 text-blue-600;
+}
+
+.controlsGrid {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-6 items-end;
+}
+
+.controlItem {
+  @apply space-y-2;
+}
+
+.controlLabel {
+  @apply block text-sm font-medium text-gray-700;
+}
+
+.countrySelect {
+  @apply w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:focus:ring-red-400 dark:focus:border-red-400 transition-colors bg-white dark:bg-gray-700 text-black dark:text-white;
+}
+
+.countrySelect option {
+  @apply bg-white dark:bg-gray-700 text-black dark:text-white;
+}
+
+.predictButton {
+  @apply w-full px-6 py-3 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2;
+}
+
+.buttonIcon {
+  @apply w-5 h-5;
+}
+
+.spinner {
+  @apply w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin;
+}
+
+.errorMessage {
+  @apply mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2 text-red-700;
+}
+
+.errorIcon {
+  @apply w-5 h-5 text-red-600;
+}
+
+/* Tarjetas de Resumen */
+.summaryCards {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4;
+}
+
+.summaryCard {
+  @apply p-4 bg-white rounded-xl shadow-sm border border-gray-200;
+}
+
+.summaryHeader {
+  @apply flex items-center space-x-2 mb-2;
+}
+
+.summaryIcon {
+  @apply w-5 h-5 text-gray-500;
+}
+
+.summaryLabel {
+  @apply text-sm font-medium text-gray-600;
+}
+
+.summaryValue {
+  @apply text-2xl font-bold text-gray-900;
+}
+
+/* Tarjetas de Probabilidad */
+.probabilityCards {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+}
+
+.probabilityCard {
+  @apply p-4 bg-white rounded-xl shadow-sm border border-gray-200;
+}
+
+.probabilityHeader {
+  @apply flex items-center space-x-2 mb-2;
+}
+
+.probabilityIcon {
+  @apply w-5 h-5 text-blue-600;
+}
+
+.probabilityLabel {
+  @apply text-sm font-medium text-gray-600;
+}
+
+.probabilityValue {
+  @apply text-2xl font-bold text-blue-600;
+}
+
+/* Sección de Gráficos */
+.chartsSection {
+  @apply p-6 bg-white rounded-xl shadow-sm border border-gray-200;
+}
+
+.chartsTitle {
+  @apply flex items-center space-x-2 text-lg font-semibold text-gray-900 mb-6;
+}
+
+.chartsIcon {
+  @apply w-5 h-5 text-green-600;
+}
+
+.chartsGrid {
+  @apply grid grid-cols-1 xl:grid-cols-2 gap-8;
+}
+
+.chartCard {
+  @apply space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200;
+}
+
+.chartSubtitle {
+  @apply text-base font-medium text-gray-700 text-center;
+}
+
+.chartContainer {
+  @apply h-72 bg-white rounded-lg p-2 border border-gray-200;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header {
+    @apply p-4;
+  }
+  
+  .controlsCard,
+  .chartsSection {
+    @apply p-4;
+  }
+  
+  .summaryCards {
+    @apply grid-cols-2;
+  }
+  
+  .probabilityCards {
+    @apply grid-cols-1;
+  }
+  
+  .chartsGrid {
+    @apply grid-cols-1 gap-6;
+  }
+  
+  .chartContainer {
+    @apply h-64;
+  }
+}
+
+@media (max-width: 640px) {
+  .summaryCards {
+    @apply grid-cols-1;
+  }
+  
+  .chartContainer {
+    @apply h-56;
+  }
+}

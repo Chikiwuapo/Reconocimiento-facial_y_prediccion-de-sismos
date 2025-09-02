@@ -4,6 +4,7 @@ import Header from './Layout/Header';
 import DashboardGrid from './Layout/DashboardGrid';
 import StatisticsView from './Views/StatisticsView';
 import CountryView from './Views/CountryView';
+import PredictionsView from './Views/PredictionsView';
 import { DashboardProvider, useDashboard } from './Context/DashboardContext';
 
 const DashboardContent: React.FC = () => {
@@ -17,6 +18,8 @@ const DashboardContent: React.FC = () => {
         return <StatisticsView />;
       case 'country':
         return selectedCountry ? <CountryView country={selectedCountry} /> : <DashboardGrid />;
+      case 'predictions':
+        return <PredictionsView />;
       default:
         return <DashboardGrid />;
     }

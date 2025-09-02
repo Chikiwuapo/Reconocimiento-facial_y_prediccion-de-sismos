@@ -180,6 +180,18 @@ const MagnitudPromedioCharts: React.FC<MagnitudPromedioChartsProps> = ({ country
                 <XAxis dataKey="period" />
                 <YAxis domain={[0, 7]} />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any) => [
                     `M${value.toFixed(2)}`, 
                     selectedYear === 'all' ? 'Magnitud Promedio' : 'Magnitud Promedio'
@@ -217,6 +229,18 @@ const MagnitudPromedioCharts: React.FC<MagnitudPromedioChartsProps> = ({ country
                 <XAxis dataKey="period" />
                 <YAxis domain={[0, 7]} />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any, name: any) => [
                     `M${value.toFixed(2)}`, 
                     name === 'average' ? 'Promedio' : 'Máximo'
@@ -264,6 +288,18 @@ const MagnitudPromedioCharts: React.FC<MagnitudPromedioChartsProps> = ({ country
                 <XAxis dataKey="magnitude" />
                 <YAxis />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any, name: any) => [
                     name === 'deviation' ? `${value.toFixed(2)}` : `M${value.toFixed(1)}`, 
                     name === 'deviation' ? 'Desviación' : 'Magnitud'

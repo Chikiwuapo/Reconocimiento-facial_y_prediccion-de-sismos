@@ -119,6 +119,18 @@ const TotalSismosCharts: React.FC<TotalSismosChartsProps> = ({ countryData, sele
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any) => [`${value} sismos`, 'Total Acumulado']}
                   labelFormatter={(label: any) => tooltipTitle === 'Año' ? `Año ${label}` : label}
                 />
@@ -156,6 +168,18 @@ const TotalSismosCharts: React.FC<TotalSismosChartsProps> = ({ countryData, sele
                   tick={{ fontSize: 12 }}
                 />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any) => [`${value} sismos`, 'Cantidad']}
                   labelFormatter={(label: any) => tooltipTitle === 'Año' ? `Año ${label}` : label}
                 />
@@ -195,6 +219,18 @@ const TotalSismosCharts: React.FC<TotalSismosChartsProps> = ({ countryData, sele
                   ))}
                 </Pie>
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any) => [`${value} sismos`, 'Cantidad']}
                 />
               </PieChart>

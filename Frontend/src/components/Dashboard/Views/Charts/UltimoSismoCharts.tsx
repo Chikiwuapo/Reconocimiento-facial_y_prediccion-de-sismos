@@ -116,16 +116,16 @@ const UltimoSismoCharts: React.FC<UltimoSismoChartsProps> = ({ countryData, sele
                 </Pie>
                 <Tooltip 
                   contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                    border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    color: theme === 'dark' ? '#f9fafb' : '#111827'
+                    color: '#111827'
                   }}
                   labelStyle={{
-                    color: theme === 'dark' ? '#ffffff' : '#111827'
+                    color: '#111827'
                   }}
                   itemStyle={{
-                    color: theme === 'dark' ? '#ffffff' : '#111827'
+                    color: '#111827'
                   }}
                 />
               </PieChart>
@@ -165,16 +165,16 @@ const UltimoSismoCharts: React.FC<UltimoSismoChartsProps> = ({ countryData, sele
                 />
                 <Tooltip 
                   contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                    border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    color: theme === 'dark' ? '#f9fafb' : '#111827'
+                    color: '#111827'
                   }}
                   labelStyle={{
-                    color: theme === 'dark' ? '#ffffff' : '#111827'
+                    color: '#111827'
                   }}
                   itemStyle={{
-                    color: theme === 'dark' ? '#ffffff' : '#111827'
+                    color: '#111827'
                   }}
                   formatter={(value: any) => [`${value.toFixed(1)}%`, 'Valor']}
                 />
@@ -209,16 +209,16 @@ const UltimoSismoCharts: React.FC<UltimoSismoChartsProps> = ({ countryData, sele
                 />
                 <Tooltip 
                   contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                    border: theme === 'dark' ? '1px solid #374151' : '1px solid #e5e7eb',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
                     borderRadius: '8px',
-                    color: theme === 'dark' ? '#f9fafb' : '#111827'
+                    color: '#111827'
                   }}
                   labelStyle={{
-                    color: theme === 'dark' ? '#ffffff' : '#111827'
+                    color: '#111827'
                   }}
                   itemStyle={{
-                    color: theme === 'dark' ? '#ffffff' : '#111827'
+                    color: '#111827'
                   }}
                   formatter={(value: any, name: any) => [
                     `M${value.toFixed(1)}`, 

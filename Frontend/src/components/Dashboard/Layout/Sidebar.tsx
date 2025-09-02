@@ -145,6 +145,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
               )}
             </button>
 
+            {/* Predictions View */}
+            <button
+              onClick={() => setCurrentView("predictions")}
+              className={`group w-full flex items-center ${
+                collapsed ? "justify-center" : "space-x-3"
+              } px-3 py-2 rounded-md transition-all duration-200 hover:translate-x-0.5 ${
+                currentView === "predictions"
+                  ? "bg-red-600 text-white"
+                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
+              }`}
+              title="Predicciones Sísmicas"
+            >
+              <AlertTriangle className="h-5 w-5" />
+              {!collapsed && (
+                <span className="font-medium">Predicciones Sísmicas</span>
+              )}
+            </button>
+
             {/* Country Selector */}
             <div className="pt-2">
               <button

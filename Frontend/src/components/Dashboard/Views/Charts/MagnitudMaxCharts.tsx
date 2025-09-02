@@ -130,6 +130,18 @@ const MagnitudMaxCharts: React.FC<MagnitudMaxChartsProps> = ({ countryData, sele
                 <XAxis dataKey="period" />
                 <YAxis domain={[0, Math.max(maxMagnitude + 1, 7)]} />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any) => [
                     `M${value.toFixed(1)}`, 
                     selectedYear === 'all' ? 'Magnitud Máxima' : 'Magnitud Promedio'
@@ -167,7 +179,20 @@ const MagnitudMaxCharts: React.FC<MagnitudMaxChartsProps> = ({ countryData, sele
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="range" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
+                />
                 <Bar dataKey="count" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -197,6 +222,18 @@ const MagnitudMaxCharts: React.FC<MagnitudMaxChartsProps> = ({ countryData, sele
                 />
                 <ZAxis dataKey="z" range={[60, 400]} />
                 <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    color: '#111827'
+                  }}
+                  labelStyle={{
+                    color: '#111827'
+                  }}
+                  itemStyle={{
+                    color: '#111827'
+                  }}
                   formatter={(value: any, name: any) => [
                     name === 'x' ? (selectedYear === 'all' ? `Año ${value + 2020}` : `Grupo ${value + 1}`) : 
                     name === 'y' ? `M${value.toFixed(1)}` : 
