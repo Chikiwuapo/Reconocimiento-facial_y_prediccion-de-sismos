@@ -1,0 +1,221 @@
+.chartsContainer {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-color);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--bg-accent);
+  border-radius: 12px;
+  color: var(--text-accent);
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+}
+
+.chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.chartCard {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.chartCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.chartTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 16px 0;
+}
+
+.chartIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--text-accent);
+}
+
+.chartContainer {
+  height: 250px;
+  width: 100%;
+}
+
+/* Estilos específicos para los gráficos */
+.chartContainer :global(.recharts-cartesian-grid-horizontal line),
+.chartContainer :global(.recharts-cartesian-grid-vertical line) {
+  stroke: var(--grid-line-color) !important;
+  stroke-opacity: 0.3 !important;
+}
+
+.chartContainer :global(.recharts-polar-grid-angle line),
+.chartContainer :global(.recharts-polar-grid-concentric line) {
+  stroke: var(--grid-line-color) !important;
+  stroke-opacity: 0.3 !important;
+}
+
+.chartContainer :global(.recharts-xAxis .recharts-cartesian-axis-tick-value),
+.chartContainer :global(.recharts-yAxis .recharts-cartesian-axis-tick-value) {
+  fill: var(--text-primary) !important;
+  font-size: 12px !important;
+}
+
+.chartContainer :global(.recharts-polar-angle-axis-tick-value) {
+  fill: var(--text-primary) !important;
+  font-size: 12px !important;
+}
+
+.chartContainer :global(.recharts-polar-radius-axis-tick-value) {
+  fill: var(--text-primary) !important;
+  font-size: 12px !important;
+}
+
+.chartContainer :global(.recharts-tooltip-wrapper) {
+  z-index: 1000;
+}
+
+.statsCard {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.statValue {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.noData {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.noDataIcon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+}
+
+.noData p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Variables CSS para temas */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-accent: #f3e8ff;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-accent: #9333ea;
+  --border-color: #e5e7eb;
+  --grid-line-color: #d1d5db;
+  --chart-line-color: #3b82f6;
+  --chart-fill-color: #dbeafe;
+}
+
+/* Tema oscuro */
+[data-theme="dark"] {
+  --bg-primary: #1f2937;
+  --bg-secondary: #374151;
+  --bg-accent: #581c87;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-accent: #c084fc;
+  --border-color: #4b5563;
+  --grid-line-color: #6b7280;
+  --chart-line-color: #60a5fa;
+  --chart-fill-color: #1e3a8a;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .chartsContainer {
+    padding: 16px;
+  }
+  
+  .chartsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .header {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+}

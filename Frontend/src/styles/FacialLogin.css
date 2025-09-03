@@ -1,0 +1,315 @@
+.fl-container {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(1200px 600px at 10% 10%, rgba(79,70,229,.15), transparent 60%),
+                radial-gradient(1000px 500px at 90% 20%, rgba(34,197,94,.12), transparent 60%),
+                #0f172a; /* slate-900 */
+    padding: 24px;
+}
+
+.fl-card {
+    width: 100%;
+    max-width: 1000px;
+    background: linear-gradient(180deg, rgba(17,24,39,.9), rgba(11,18,32,.95));
+    border: 1px solid rgba(99,102,241,.25); /* indigo-500/25 */
+    border-radius: 18px;
+    padding: 28px;
+    color: #e5e7eb; /* slate-200 */
+    box-shadow: 0 12px 40px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255,255,255,.03);
+    backdrop-filter: saturate(120%) blur(2px);
+    position: relative;
+}
+
+.fl-title {
+    margin: 0 0 12px;
+    font-size: 28px;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: .2px;
+    background: linear-gradient(90deg, #a5b4fc, #86efac);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.fl-content {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+@media (min-width: 900px) {
+    .fl-content {
+        grid-template-columns: 1.2fr 1fr;
+    }
+}
+
+.fl-camera {
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+}
+
+/* Contenedor para overlay de puntos */
+.fl-video-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(0,0,0,.45);
+}
+
+.fl-webcam {
+    width: 100%;
+    max-width: 640px;
+    aspect-ratio: 4/3;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(51,65,85,.8); /* slate-600 */
+    background: #0b1220;
+}
+
+.fl-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.fl-hint {
+    font-size: 12px;
+    color: #9ca3af;
+    letter-spacing: .2px;
+}
+
+.fl-status {
+    font-size: 12px;
+    color: #a3e635; /* lime-400 aprox. */
+    letter-spacing: .2px;
+}
+
+/* Barra de progreso */
+.fl-progress {
+    width: 100%;
+    height: 10px;
+    background: #0b1220;
+    border: 1px solid rgba(51,65,85,.8);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.fl-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #22c55e);
+    transition: width 0.15s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.fl-progress-bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,.25) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: fl-shimmer 1.4s ease infinite;
+}
+
+@keyframes fl-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.fl-progress-text {
+    font-size: 12px;
+    color: #cbd5e1;
+    text-align: right;
+    margin-top: 4px;
+}
+
+.fl-form {
+    display: grid;
+    gap: 12px;
+    align-content: center;
+    justify-items: center;
+}
+
+.fl-label {
+    display: grid;
+    gap: 6px;
+    font-size: 14px;
+    color: #cbd5e1;
+    letter-spacing: .2px;
+}
+
+.fl-input {
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(51,65,85,.8);
+    background: #0b1220;
+    color: #e5e7eb;
+    outline: none;
+}
+
+.fl-input:focus {
+    border-color: #6366f1; /* indigo-500 */
+    box-shadow: 0 0 0 3px rgba(99,102,241,.2);
+}
+
+.fl-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.fl-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(51,65,85,.8);
+    background: linear-gradient(180deg, #0f172a, #0b1220);
+    color: #e5e7eb;
+    cursor: pointer;
+    transition: transform .12s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+    font-size: 14px;
+    letter-spacing: .3px;
+    min-width: 220px;
+}
+
+.fl-btn.primary {
+    background: linear-gradient(180deg, #1f2937, #0b1220); /* dark base */
+    border-color: #14b8a6; /* teal-500 */
+    position: relative;
+    overflow: hidden;
+}
+.fl-btn.primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(from 180deg at 50% 50%, rgba(20,184,166,.0), rgba(20,184,166,.25), rgba(20,184,166,.0));
+    filter: blur(10px);
+    opacity: .6;
+}
+.fl-btn.primary::after {
+    content: "";
+    position: absolute;
+    inset: 1px;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #0b1220, #0f172a);
+}
+.fl-btn.primary span {
+    position: relative;
+    z-index: 1;
+    color: #a7f3d0; /* emerald-200 */
+    text-shadow: 0 0 8px rgba(20,184,166,.25);
+}
+
+.fl-btn:disabled {
+    opacity: .6;
+    cursor: not-allowed;
+}
+
+.fl-btn:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px rgba(0,0,0,.35);
+}
+
+.fl-btn.primary:not(:disabled):hover {
+    box-shadow: 0 10px 28px rgba(20,184,166,.22);
+    border-color: #2dd4bf; /* teal-400 */
+}
+
+.fl-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(45,212,191,.25);
+}
+
+/* Decoración flotante temática */
+.fl-decor {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+.fl-icon {
+    position: absolute;
+    color: rgba(56,189,248,.35); /* sky-400 */
+}
+.fl-icon-wave {
+    top: -6px;
+    left: 24px;
+    animation: fl-float 6s ease-in-out infinite;
+}
+.fl-icon-marker {
+    right: 22px;
+    top: 14px;
+    color: rgba(34,197,94,.4);
+    animation: fl-float 7s ease-in-out infinite reverse;
+}
+.fl-icon-compass {
+    bottom: -10px;
+    left: 18px;
+    color: rgba(250,204,21,.35); /* amber-300 */
+    animation: fl-float 8s ease-in-out infinite;
+}
+@keyframes fl-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+}
+
+.fl-msg {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    letter-spacing: .2px;
+}
+
+/* Instrucciones */
+.fl-instructions {
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px dashed rgba(45,212,191,.25); /* teal */
+    background: linear-gradient(180deg, rgba(11,18,32,.6), rgba(15,23,42,.55));
+    color: #cbd5e1;
+}
+.fl-instructions-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #99f6e4; /* teal-200 */
+    margin-bottom: 8px;
+    letter-spacing: .3px;
+}
+.fl-instructions ol {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+}
+.fl-instructions li {
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.fl-msg.ok {
+    background: rgba(34, 197, 94, .1);
+    border: 1px solid #22c55e33;
+    color: #86efac;
+}
+
+.fl-msg.err {
+    background: rgba(239, 68, 68, .1);
+    border: 1px solid #ef444433;
+    color: #fca5a5;
+}

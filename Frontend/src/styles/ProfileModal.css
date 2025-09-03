@@ -1,0 +1,171 @@
+/* Scoped styles for ProfileModal */
+.profile-modal {
+  /* Celeste + White palette for light mode */
+  --pm-bg: #ffffff; /* card/base background now pure white */
+  --pm-bg-soft: #f8fbff; /* soft white with a hint of blue */
+  --pm-bg-softer: #f2f8ff;
+  --pm-text: #0b0b0b; /* near black for better contrast */
+  --pm-subtext: #475569; /* slate-600 */
+  --pm-border: #cfe8ff; /* sky-100/200 */
+  --pm-ring: #38bdf8; /* sky-400 */
+  --pm-sky-500: #0ea5e9; /* sky-500 */
+  --pm-sky-600: #0284c7; /* sky-600 */
+  --pm-blue-600: #2563eb; /* blue-600 */
+}
+
+.profile-modal, .profile-modal * {
+  font-weight: 700; /* bold all texts inside modal */
+}
+
+/* Bold placeholders and subtle color */
+.profile-modal ::placeholder {
+  font-weight: 700;
+  color: var(--pm-subtext);
+  opacity: 1; /* ensure visible across browsers */
+}
+
+.profile-modal h1,
+.profile-modal h2,
+.profile-modal h3,
+.profile-modal h4,
+.profile-modal h5,
+.profile-modal h6 {
+  font-weight: 700;
+  color: var(--pm-text);
+}
+
+/* Labels/títulos de campos siempre negros y en negrita */
+.profile-modal label,
+.profile-modal .pm-label,
+.profile-modal .field-label,
+.profile-modal .form-label,
+.profile-modal .label {
+  color: #0b0b0b;
+  font-weight: 700;
+}
+
+/* Tabs */
+.profile-modal .pm-tabs {
+  margin-top: 4px;
+}
+.profile-modal .pm-tabs button {
+  border: 1px solid var(--pm-border);
+  background: var(--pm-bg-soft);
+  color: var(--pm-text);
+  transition: all 180ms ease;
+}
+.profile-modal .pm-tabs button:hover {
+  filter: saturate(1.05);
+}
+
+/* Cards */
+.profile-modal .pm-card {
+  background: var(--pm-bg);
+  border: 1px solid var(--pm-border);
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.08);
+}
+
+/* Webcam panel */
+.profile-modal .pm-webcam {
+  box-shadow: 0 16px 40px rgba(2, 132, 199, 0.15);
+}
+.profile-modal .pm-webcam canvas {
+  mix-blend-mode: lighten;
+}
+
+/* Email box in profile */
+.profile-modal .pm-email {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--pm-border);
+  background: var(--pm-bg-soft);
+  color: var(--pm-text);
+}
+
+/* Progress bar */
+.profile-modal .pm-progress {
+  background: linear-gradient(180deg, rgba(2, 8, 23, 0.15), rgba(2, 8, 23, 0.05));
+}
+.profile-modal .pm-progress__bar {
+  background-image: linear-gradient(90deg, var(--pm-sky-500), var(--pm-blue-600));
+  animation: pm-pulse 1.2s ease-in-out infinite;
+}
+@keyframes pm-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.5; }
+}
+
+/* Table */
+.profile-modal .pm-table table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.profile-modal .pm-table thead {
+  background: var(--pm-bg-softer);
+}
+.profile-modal .pm-table th {
+  font-weight: 700;
+  color: var(--pm-text);
+}
+.profile-modal .pm-table tr {
+  transition: background-color 160ms ease;
+}
+.profile-modal .pm-table tbody tr:hover {
+  background: var(--pm-bg-soft);
+}
+
+/* Permissions modal */
+.profile-modal .pm-perms {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--pm-border);
+}
+
+/* Inputs inside profile modal */
+.profile-modal input[type="text"],
+.profile-modal input[type="email"],
+.profile-modal input[type="number"],
+.profile-modal select,
+.profile-modal textarea {
+  background: #ffffff !important;
+  color: #0b0b0b !important;
+  border-color: var(--pm-border);
+}
+.profile-modal input:focus,
+.profile-modal select:focus,
+.profile-modal textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.35); /* sky-500 focus ring */
+  border-color: var(--pm-sky-600);
+}
+
+/* Buttons tone adjustments */
+.profile-modal .btn-sky {
+  background: linear-gradient(90deg, var(--pm-sky-500), var(--pm-blue-600));
+  color: #fff;
+}
+.profile-modal .btn-sky:hover {
+  filter: brightness(1.03);
+}
+
+/* Dark theme soft overrides if needed (optional) */
+[data-theme='dark'] .profile-modal {
+  --pm-bg: rgba(2, 6, 23, 0.9);
+  --pm-bg-soft: rgba(15, 23, 42, 0.6);
+  --pm-bg-softer: rgba(30, 41, 59, 0.55);
+  --pm-text: #ffffff;
+  --pm-subtext: #cbd5e1;
+  --pm-border: rgba(148, 163, 184, 0.24);
+}
+
+/* En dark mode, mantener texto blanco y fondo claro para inputs para contraste */
+[data-theme='dark'] .profile-modal input[type="text"],
+[data-theme='dark'] .profile-modal input[type="email"],
+[data-theme='dark'] .profile-modal input[type="number"],
+[data-theme='dark'] .profile-modal select,
+[data-theme='dark'] .profile-modal textarea {
+  background: #ffffff !important;
+  color: #0b0b0b !important;
+}
